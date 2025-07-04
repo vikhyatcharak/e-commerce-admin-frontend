@@ -15,6 +15,9 @@ const CourierSelectionModal = ({ isOpen, order, onClose, onShipmentCreated, onAs
 
     const [step, setStep] = useState(1) // 1: Select Location, 2: Select Courier 3:Assign Courier 4:Generate Pickup
 
+    const alreadyHasShipment = !!(order?.shipment_id || shipmentId)
+    const courierAlreadyAssigned = !!(order?.shiprocket_awb || order?.courier_company_id || order?.courier_company_name)
+
     useEffect(() => {
         if (isOpen) {
             fetchShippingLocations()
@@ -26,6 +29,16 @@ const CourierSelectionModal = ({ isOpen, order, onClose, onShipmentCreated, onAs
         if (order?.user_id) fetchUser(order.user_id)
         if (order?.customer_address_id) fetchUserAddress(order.customer_address_id)
         if (order?.shipment_id) setShipmentId(order.shipment_id)
+    }, [order])
+
+    useEffect(() => {
+        if (alreadyHasShipment) {
+            setShipmentId(alreadyHasShipment)
+            setStep(3) // Assume shipment created, next is assign courier
+        }
+        if (courierAlreadyAssigned) {
+            setStep(4) // Already fully assigned
+        }
     }, [order])
 
     const fetchShippingLocations = async () => {
@@ -233,7 +246,7 @@ const CourierSelectionModal = ({ isOpen, order, onClose, onShipmentCreated, onAs
                                                 <p className="text-sm text-gray-600">{location.address}</p>
                                                 <p className="text-sm text-gray-500">{location.city}, {location.state} - {location.pincode}</p>
                                             </div>
-                                            <input type="radio" name="pickup_location" checked={selectedLocation === location.id} onChange={() =>{if (!shipmentId) setSelectedLocation(location.id)}} />
+                                            <input type="radio" name="pickup_location" checked={selectedLocation === location.id} onChange={() => { if (!shipmentId) setSelectedLocation(location.id) }} />
                                         </div>
                                     </div>
                                 ))}
@@ -257,116 +270,160 @@ const CourierSelectionModal = ({ isOpen, order, onClose, onShipmentCreated, onAs
                     {/* Step 2: Courier Selection */}
                     {step === 2 && (
                         <div>
-                            <h4 className="text-lg font-medium mb-4">Available Couriers for {shippingLocations.find(loc => loc.id === selectedLocation)?.location_name}</h4>
-                            <div className="space-y-3">
-                                {availableCouriers.map((courier) => {
-                                    const finalAmount = parseFloat(courier.rate || 0) + parseFloat(courier.cod_charges || 0) + parseFloat(courier.coverage_charges || 0) + parseFloat(courier.other_charges || 0) + parseFloat(courier.entry_tax || 0)
-                                    return (
-                                        <div
-                                            key={courier.courier_company_id}
-                                            className={`border rounded-lg p-4 cursor-pointer transition-all ${selectedCourier === courier.courier_company_id ? 'border-blue-500 bg-blue-50' : 'border-gray-200'}`}
-                                            onClick={() => setSelectedCourier(courier.courier_company_id)}
+                            <h4 className="text-lg font-medium mb-4">Courier Selection</h4>
+                            {courierAlreadyAssigned ? (
+                                <div className="p-4 border rounded bg-gray-50">
+                                    <p className="text-sm text-gray-700">
+                                        Courier already assigned:
+                                        <strong> {order?.courier_company_name || 'N/A'}</strong><br />
+                                        AWB: <strong>{order?.shiprocket_awb || 'N/A'}</strong>
+                                    </p>
+                                    <div className="flex justify-end mt-4">
+                                        <button
+                                            onClick={() => setStep(3)}
+                                            className="px-4 py-2 text-white bg-blue-600 rounded hover:bg-blue-700"
                                         >
-                                            <div className="flex items-center justify-between">
-                                                <div className="flex-1">
-                                                    {/* Courier Name & Charges */}
-                                                    <div className="flex items-center gap-3">
-                                                        <h5 className="font-medium text-lg">{courier.courier_name}</h5>
-                                                        <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
-                                                            Base: ₹{courier.rate}
-                                                        </span>
-                                                        {courier.cod_charges > 0 && (
-                                                            <span className="bg-orange-100 text-orange-800 text-xs px-2 py-1 rounded-full">
-                                                                COD: ₹{courier.cod_charges}
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                    {/* Detail Grid */}
-                                                    <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 text-sm text-gray-700">
-                                                        <div>
-                                                            <span className="font-medium">Delivery:</span>{' '}
-                                                            {courier.estimated_delivery_days} days
+                                            Next: Assign Courier
+                                        </button>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div>
+                                    <h4 className="text-lg font-medium mb-4">Available Couriers for {shippingLocations.find(loc => loc.id === selectedLocation)?.location_name}</h4>
+                                    <div className="space-y-3">
+                                        {availableCouriers.map((courier) => {
+                                            const finalAmount = parseFloat(courier.rate || 0) + parseFloat(courier.cod_charges || 0) + parseFloat(courier.coverage_charges || 0) + parseFloat(courier.other_charges || 0) + parseFloat(courier.entry_tax || 0)
+                                            return (
+                                                <div
+                                                    key={courier.courier_company_id}
+                                                    className={`border rounded-lg p-4 cursor-pointer transition-all ${selectedCourier === courier.courier_company_id ? 'border-blue-500 bg-blue-50' : 'border-gray-200'}`}
+                                                    onClick={() => setSelectedCourier(courier.courier_company_id)}
+                                                >
+                                                    <div className="flex items-center justify-between">
+                                                        <div className="flex-1">
+                                                            {/* Courier Name & Charges */}
+                                                            <div className="flex items-center gap-3">
+                                                                <h5 className="font-medium text-lg">{courier.courier_name}</h5>
+                                                                <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
+                                                                    Base: ₹{courier.rate}
+                                                                </span>
+                                                                {courier.cod_charges > 0 && (
+                                                                    <span className="bg-orange-100 text-orange-800 text-xs px-2 py-1 rounded-full">
+                                                                        COD: ₹{courier.cod_charges}
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                            {/* Detail Grid */}
+                                                            <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 text-sm text-gray-700">
+                                                                <div>
+                                                                    <span className="font-medium">Delivery:</span>{' '}
+                                                                    {courier.estimated_delivery_days} days
+                                                                </div>
+                                                                <div>
+                                                                    <span className="font-medium">ETD:</span>{' '}
+                                                                    {courier.etd || 'N/A'}
+                                                                </div>
+                                                                <div>
+                                                                    <span className="font-medium">Tracking:</span>{' '}
+                                                                    ⭐ {courier.tracking_performance || '-'} / 5
+                                                                </div>
+                                                                <div>
+                                                                    <span className="font-medium">Pickup:</span>{' '}
+                                                                    🚚 {courier.pickup_performance || '-'} / 5
+                                                                </div>
+                                                                <div>
+                                                                    <span className="font-medium">Delivery Rating:</span>{' '}
+                                                                    ✅ {courier.delivery_performance || '-'} / 5
+                                                                </div>
+                                                                <div>
+                                                                    <span className="font-medium">RTO Charges:</span>{' '}
+                                                                    ₹{courier.rto_charges || 0}
+                                                                </div>
+                                                                <div>
+                                                                    <span className="font-medium text-green-700">Total Payable:</span>{' '}
+                                                                    ₹{finalAmount.toFixed(2)}
+                                                                </div>
+                                                            </div>
                                                         </div>
-                                                        <div>
-                                                            <span className="font-medium">ETD:</span>{' '}
-                                                            {courier.etd || 'N/A'}
-                                                        </div>
-                                                        <div>
-                                                            <span className="font-medium">Tracking:</span>{' '}
-                                                            ⭐ {courier.tracking_performance || '-'} / 5
-                                                        </div>
-                                                        <div>
-                                                            <span className="font-medium">Pickup:</span>{' '}
-                                                            🚚 {courier.pickup_performance || '-'} / 5
-                                                        </div>
-                                                        <div>
-                                                            <span className="font-medium">Delivery Rating:</span>{' '}
-                                                            ✅ {courier.delivery_performance || '-'} / 5
-                                                        </div>
-                                                        <div>
-                                                            <span className="font-medium">RTO Charges:</span>{' '}
-                                                            ₹{courier.rto_charges || 0}
-                                                        </div>
-                                                        <div>
-                                                            <span className="font-medium text-green-700">Total Payable:</span>{' '}
-                                                            ₹{finalAmount.toFixed(2)}
-                                                        </div>
+
+                                                        {/* Radio Selector */}
+                                                        <input
+                                                            type="radio"
+                                                            name="courier"
+                                                            checked={selectedCourier === courier.courier_company_id}
+                                                            onChange={() => { if (!shipmentId) setSelectedCourier(courier.courier_company_id) }}
+                                                        />
                                                     </div>
                                                 </div>
+                                            )
+                                        })}
+                                    </div>
 
-                                                {/* Radio Selector */}
-                                                <input
-                                                    type="radio"
-                                                    name="courier"
-                                                    checked={selectedCourier === courier.courier_company_id}
-                                                    onChange={() => { if (!shipmentId) setSelectedCourier(courier.courier_company_id) }}
-                                                />
-                                            </div>
-                                        </div>
-                                    )
-                                })}
-                            </div>
-
-                            <div className="mt-6 flex justify-end gap-3">
-                                <button onClick={() => setStep(1)} className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md">
-                                    Back
-                                </button>
-                                <button onClick={handleCreateShipment} disabled={!selectedCourier || loading || shipmentId}
-                                    className="px-4 py-2 text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50">
-                                    {loading ? 'Creating Shipment...' : 'Create Shipment'}
-                                </button>
-                                {selectedCourier && <>
-                                    <button onClick={() => setStep(3)} disabled={!selectedCourier || loading}
-                                        className="px-4 py-2 text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50">
-                                        {loading ? '' : 'Next: Assign Courier'}
-                                    </button>
-                                </>}
-                            </div>
+                                    <div className="mt-6 flex justify-end gap-3">
+                                        <button onClick={() => setStep(1)} className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md">
+                                            Back
+                                        </button>
+                                        {!alreadyHasShipment && (
+                                            <button onClick={handleCreateShipment} disabled={loading}
+                                                className="px-4 py-2 text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50">
+                                                {loading ? 'Creating Shipment...' : 'Create Shipment'}
+                                            </button>
+                                        )}
+                                        {selectedCourier && <>
+                                            <button onClick={() => setStep(3)} disabled={loading}
+                                                className="px-4 py-2 text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50">
+                                                {loading ? '' : 'Next: Assign Courier'}
+                                            </button>
+                                        </>}
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     )}
 
                     {/* Step 3: Assign Courier */}
                     {step === 3 && (
                         <div>
-                            <h4 className="text-lg font-medium mb-4">Assign Courier {availableCouriers.find(c => c.courier_company_id === selectedCourier)?.courier_name}</h4>
-                            <div className="mt-6 flex justify-end gap-3">
-                                <button onClick={() => setStep(2)} className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md">
-                                    Back
-                                </button>
-                                <button onClick={handleAssignCourier} disabled={!shipmentId || !selectedCourier || loading}
-                                    className="px-4 py-2 text-white bg-green-600 rounded-md hover:bg-green-700 disabled:opacity-50">
-                                    {loading ? 'Assigning Courier...' : 'Assign Courier'}
-                                </button>
-                                {shipmentId && (
-                                    <button
-                                        onClick={() => setStep(4)}
-                                        disabled={loading}
-                                        className="px-4 py-2 text-white bg-purple-600 rounded-md hover:bg-purple-700 disabled:opacity-50"
-                                    >
-                                        {loading ? '' : 'Next: Generate Pickup'}
-                                    </button>
-                                )}
-                            </div>
+                            <h4 className="text-lg font-medium mb-4">Assign Courier</h4>
+                            {courierAlreadyAssigned ? (
+                                <div className="p-4 border rounded bg-gray-50">
+                                    <p className="text-sm text-gray-700">
+                                        Courier already assigned:
+                                        <strong> {order?.courier_company_name || 'N/A'}</strong><br />
+                                        AWB: <strong>{order?.shiprocket_awb || 'N/A'}</strong>
+                                    </p>
+                                    <div className="flex justify-end mt-4">
+                                        <button
+                                            onClick={() => setStep(4)}
+                                            className="px-4 py-2 text-white bg-purple-600 rounded hover:bg-purple-700"
+                                        >
+                                            Next: Generate Pickup
+                                        </button>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div>
+                                    <h4 className="text-lg font-medium mb-4">Assign Courier {availableCouriers.find(c => c.courier_company_id === selectedCourier)?.courier_name}</h4>
+                                    <div className="mt-6 flex justify-end gap-3">
+                                        <button onClick={() => setStep(2)} className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md">
+                                            Back
+                                        </button>
+                                        <button onClick={handleAssignCourier} disabled={!shipmentId || !selectedCourier || loading}
+                                            className="px-4 py-2 text-white bg-green-600 rounded-md hover:bg-green-700 disabled:opacity-50">
+                                            {loading ? 'Assigning Courier...' : 'Assign Courier'}
+                                        </button>
+                                        {shipmentId && (
+                                            <button
+                                                onClick={() => setStep(4)}
+                                                disabled={loading}
+                                                className="px-4 py-2 text-white bg-purple-600 rounded-md hover:bg-purple-700 disabled:opacity-50"
+                                            >
+                                                {loading ? '' : 'Next: Generate Pickup'}
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     )}
 

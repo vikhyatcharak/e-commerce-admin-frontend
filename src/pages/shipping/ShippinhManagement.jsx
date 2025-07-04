@@ -124,15 +124,15 @@ const ShippingManagement = () => {
 
     const handleTrackShipment = async () => {
         if (!trackingInput.trim()) {
-            toast.error('Please input a valid shipment')
+            toast.error('Please input a valid AWB number')
             return
         }
 
         try {
-            const response = await ordersAPI.trackShipment(trackingInput.trim())
+            const response = await ordersAPI.trackShipment({ orderId: trackingInput.trim() })
             if (response.data.success) {
-                setTrackingResult(response.data.data)
-                toast.success('Tracking information retrieved')
+                setTrackingResult(response.data.data.trackingData || response.data.data)
+                toast.success('Tracking info retrieved')
             }
         } catch (error) {
             toast.error('Failed to track shipment')
@@ -328,7 +328,7 @@ const ShippingManagement = () => {
                     <div className="bg-white rounded-lg border border-gray-200 p-6">
                         <h3 className="text-lg font-semibold mb-4">Recent Shipping Activity</h3>
                         <div className="space-y-3">
-                            {currentOrders.slice(0, 5).map((order) => (
+                            {shiprocketOrders.map((order) => (
                                 <div key={order.id} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-b-0">
                                     <div className="flex items-center gap-3">
                                         <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
@@ -469,33 +469,8 @@ const ShippingManagement = () => {
 
             {activeTab === 'orders' && (
                 <div className="bg-white rounded-lg border border-gray-200">
-                    <div className="p-6 border-b border-gray-200">
-                        <div className="flex justify-between items-center">
-                            <h3 className="text-lg font-semibold">Shiprocket Orders</h3>
-                            <div className="flex gap-4">
-                                <input
-                                    type="text"
-                                    placeholder="Search orders or AWB..."
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                    className="border border-gray-300 rounded-md px-3 py-2 text-sm"
-                                />
-                                <select
-                                    value={filterStatus}
-                                    onChange={(e) => setFilterStatus(e.target.value)}
-                                    className="border border-gray-300 rounded-md px-3 py-2 text-sm"
-                                >
-                                    <option value="all">All Orders</option>
-                                    <option value="pending">Pending Shipment</option>
-                                    <option value="shipped">Shipped</option>
-                                    <option value="delivered">Delivered</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-
                     <div className="p-6">
-                        {currentOrders.length === 0 ? (
+                        {shiprocketOrders.length === 0 ? (
                             <div className="text-center py-12">
                                 <div className="text-gray-400 text-6xl mb-4">📦</div>
                                 <h3 className="text-lg font-medium text-gray-900 mb-2">No orders found</h3>
@@ -504,7 +479,7 @@ const ShippingManagement = () => {
                         ) : (
                             <>
                                 <div className="space-y-3">
-                                    {currentOrders.map((order) => (
+                                    {shiprocketOrders.map((order) => (
                                         <div key={order.id} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50">
                                             <div className="flex items-center justify-between">
                                                 <div className="flex items-center gap-4">
@@ -585,24 +560,6 @@ const ShippingManagement = () => {
                                         </div>
                                     ))}
                                 </div>
-
-                                {/* Pagination */}
-                                {totalPages > 1 && (
-                                    <div className="flex justify-center gap-2 mt-6">
-                                        {[...Array(totalPages)].map((_, idx) => (
-                                            <button
-                                                key={idx}
-                                                onClick={() => setCurrentPage(idx + 1)}
-                                                className={`px-4 py-2 border rounded ${currentPage === idx + 1
-                                                    ? 'bg-blue-600 text-white border-blue-600'
-                                                    : 'border-gray-300 hover:bg-gray-50'
-                                                    }`}
-                                            >
-                                                {idx + 1}
-                                            </button>
-                                        ))}
-                                    </div>
-                                )}
                             </>
                         )}
                     </div>
@@ -732,13 +689,27 @@ const ShippingManagement = () => {
                     setSelectedOrder(null)
                 }}
                 onShipmentCreated={() => {
-                    setShowCourierModal(false)
-                    setSelectedOrder(null)
+                    fetchOrders()
                     fetchShiprocketOrders()
                     fetchShippingStats()
                     toast.success('Shipment created successfully!')
                 }}
+                onAssignCourier={() => {
+                    fetchOrders()
+                    fetchShiprocketOrders()
+                    fetchShippingStats()
+                    toast.success('Courier assigned successfully!')
+                }}
+                onGeneratePickup={() => {
+                    setShowCourierModal(false)
+                    setSelectedOrder(null)
+                    fetchOrders()
+                    fetchShiprocketOrders()
+                    fetchShippingStats()
+                    toast.success('Pickup generated successfully!')
+                }}
             />
+
 
             <OrderDetailsModal
                 isOpen={showOrderModal}
