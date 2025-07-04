@@ -1,9 +1,12 @@
-import React, {useState,useEffect} from 'react'
+import React, { useState, useEffect } from 'react'
 import { ordersAPI } from '../../../api/admin'
 
 const OrderDetailsModal = ({ isOpen, order, onClose }) => {
 
   const [orderItems, setOrderItems] = useState([])
+  const shipmentCreated = !!order?.shipment_id
+  const courierAssigned = !!order?.shiprocket_awb || !!order?.courier_company_name || !!order?.courier_company_id
+
 
   useEffect(() => {
     if (order?.id) {
@@ -136,6 +139,55 @@ const OrderDetailsModal = ({ isOpen, order, onClose }) => {
               </div>
             )}
           </div>
+          {/* Shipment details */}
+          {shipmentCreated && !courierAssigned && (
+            <div className="mt-8">
+              <h4 className="font-semibold text-gray-900 mb-4">Shipment Created</h4>
+              <div className="bg-gray-50 rounded-lg p-4">
+                <div className="flex justify-between text-sm text-gray-700">
+                  <span>Shipment ID:</span>
+                  <span className="font-medium">{order?.shipment_id}</span>
+                </div>
+                <p className="mt-2 text-xs text-gray-500">Courier has not been assigned yet.</p>
+              </div>
+            </div>
+          )}
+          {/* courier assigned */}
+          {courierAssigned && (
+            <div className="mt-8">
+              <h4 className="font-semibold text-gray-900 mb-4">Courier Assigned</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <h5 className="text-sm font-medium text-gray-700 mb-2">Shipment Info</h5>
+                  <div className="text-sm text-gray-600 space-y-2">
+                    <div className="flex justify-between">
+                      <span>Shipment ID:</span>
+                      <span className="font-medium">{order?.shipment_id || '—'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>AWB Code:</span>
+                      <span className="font-medium">{order?.shiprocket_awb || '—'}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <h5 className="text-sm font-medium text-gray-700 mb-2">Courier Info</h5>
+                  <div className="text-sm text-gray-600 space-y-2">
+                    <div className="flex justify-between">
+                      <span>Courier Company:</span>
+                      <span className="font-medium">{order?.courier_company_name || '—'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Courier ID:</span>
+                      <span className="font-medium">{order?.courier_company_id || '—'}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
         </div>
       </div>
     </div>
