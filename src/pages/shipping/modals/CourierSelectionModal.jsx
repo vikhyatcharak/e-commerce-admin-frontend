@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { ordersAPI, usersAPI } from '../../../api/admin.js'
 import { toast } from 'react-toastify'
 
-const CourierSelectionModal = ({ isOpen, order, onClose, onShipmentCreated }) => {
+const CourierSelectionModal = ({ isOpen, order, onClose, onShipmentCreated, onAssignCourier, onGeneratePickup }) => {
     const [shippingLocations, setShippingLocations] = useState([])
     const [selectedLocation, setSelectedLocation] = useState('')
     const [availableCouriers, setAvailableCouriers] = useState([])
@@ -13,7 +13,7 @@ const CourierSelectionModal = ({ isOpen, order, onClose, onShipmentCreated }) =>
     const [loading, setLoading] = useState(false)
     const [shipmentId, setShipmentId] = useState(null)
 
-    const [step, setStep] = useState(1) // 1: Select Location, 2: Select Courier
+    const [step, setStep] = useState(1) // 1: Select Location, 2: Select Courier 3:Assign Courier 4:Generate Pickup
 
     useEffect(() => {
         if (isOpen) {
@@ -138,6 +138,7 @@ const CourierSelectionModal = ({ isOpen, order, onClose, onShipmentCreated }) =>
             if (response.data.success) {
                 toast.success('Shipment created successfully')
                 setShipmentId(response.data.shipmentId)
+                onShipmentCreated?.(order.id)
                 setStep(3)
             }
         } catch (error) {
@@ -170,8 +171,9 @@ const CourierSelectionModal = ({ isOpen, order, onClose, onShipmentCreated }) =>
 
             if (response.data.success) {
                 toast.success('Courier assigned successfully!')
-                onShipmentCreated?.(response.data.data)
-                onClose()
+                onAssignCourier?.(order.id)
+                setStep(4)
+
             }
         } catch (error) {
             console.error('Error assigning courier:', error)
@@ -180,7 +182,26 @@ const CourierSelectionModal = ({ isOpen, order, onClose, onShipmentCreated }) =>
             setLoading(false)
         }
     }
+    const handleGeneratePickup = async () => {
+        if (!shipmentId) return toast.error("Shipment ID missing")
 
+        setLoading(true)
+        try {
+            const response = await ordersAPI.generatePickup(shipmentId)
+            if (response.data?.success) {
+                toast.success("Pickup generated successfully!")
+                onGeneratePickup?.(order.id)
+                onClose()
+            } else {
+                toast.error("Failed to schedule pickup.")
+            }
+        } catch (err) {
+            console.error("Pickup generation error:", err)
+            toast.error("Error generating pickup.")
+        } finally {
+            setLoading(false)
+        }
+    }
 
     if (!isOpen) return null
 
@@ -190,7 +211,7 @@ const CourierSelectionModal = ({ isOpen, order, onClose, onShipmentCreated }) =>
                 <div className="flex items-center justify-between p-6 border-b">
                     <div>
                         <h3 className="text-lg font-semibold">Ship Order #{order?.id}</h3>
-                        <p className="text-sm text-gray-500">Select pickup location and courier</p>
+                        <p className="text-sm text-gray-500">Step {step}/4</p>
                     </div>
                     <button onClick={onClose} className="text-gray-400 hover:text-gray-600">✕</button>
                 </div>
@@ -212,7 +233,7 @@ const CourierSelectionModal = ({ isOpen, order, onClose, onShipmentCreated }) =>
                                                 <p className="text-sm text-gray-600">{location.address}</p>
                                                 <p className="text-sm text-gray-500">{location.city}, {location.state} - {location.pincode}</p>
                                             </div>
-                                            <input type="radio" name="pickup_location" checked={selectedLocation === location.id} />
+                                            <input type="radio" name="pickup_location" checked={selectedLocation === location.id} onChange={() =>{if (!shipmentId) setSelectedLocation(location.id)}} />
                                         </div>
                                     </div>
                                 ))}
@@ -226,7 +247,7 @@ const CourierSelectionModal = ({ isOpen, order, onClose, onShipmentCreated }) =>
                                 {shipmentId && <>
                                     <button onClick={() => setStep(2)} disabled={!selectedLocation || loading}
                                         className="px-4 py-2 text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50">
-                                        {loading ? '' : 'Next'}
+                                        {loading ? '' : 'Next: Select Courier'}
                                     </button>
                                 </>}
                             </div>
@@ -298,7 +319,7 @@ const CourierSelectionModal = ({ isOpen, order, onClose, onShipmentCreated }) =>
                                                     type="radio"
                                                     name="courier"
                                                     checked={selectedCourier === courier.courier_company_id}
-                                                    readOnly
+                                                    onChange={() => { if (!shipmentId) setSelectedCourier(courier.courier_company_id) }}
                                                 />
                                             </div>
                                         </div>
@@ -317,12 +338,13 @@ const CourierSelectionModal = ({ isOpen, order, onClose, onShipmentCreated }) =>
                                 {selectedCourier && <>
                                     <button onClick={() => setStep(3)} disabled={!selectedCourier || loading}
                                         className="px-4 py-2 text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50">
-                                        {loading ? '' : 'Next'}
+                                        {loading ? '' : 'Next: Assign Courier'}
                                     </button>
                                 </>}
                             </div>
                         </div>
                     )}
+
                     {/* Step 3: Assign Courier */}
                     {step === 3 && (
                         <div>
@@ -335,11 +357,42 @@ const CourierSelectionModal = ({ isOpen, order, onClose, onShipmentCreated }) =>
                                     className="px-4 py-2 text-white bg-green-600 rounded-md hover:bg-green-700 disabled:opacity-50">
                                     {loading ? 'Assigning Courier...' : 'Assign Courier'}
                                 </button>
+                                {shipmentId && (
+                                    <button
+                                        onClick={() => setStep(4)}
+                                        disabled={loading}
+                                        className="px-4 py-2 text-white bg-purple-600 rounded-md hover:bg-purple-700 disabled:opacity-50"
+                                    >
+                                        {loading ? '' : 'Next: Generate Pickup'}
+                                    </button>
+                                )}
                             </div>
                         </div>
                     )}
+
                     {/* Step 4: Generate Pickup */}
-                    
+                    {step === 4 && (
+                        <div>
+                            <h4 className="text-lg font-medium mb-4">Generate Pickup</h4>
+                            <p className="text-sm text-gray-600 mb-6">Click below to schedule pickup for Shipment ID <strong>{shipmentId}</strong>.</p>
+                            <div className="flex justify-end gap-3">
+                                <button
+                                    onClick={() => setStep(3)}
+                                    className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md"
+                                >
+                                    Back
+                                </button>
+                                <button
+                                    onClick={handleGeneratePickup}
+                                    disabled={loading}
+                                    className="px-4 py-2 text-white bg-purple-600 rounded-md hover:bg-purple-700 disabled:opacity-50"
+                                >
+                                    {loading ? 'Generating Pickup...' : 'Generate Pickup'}
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
                 </div>
             </div>
         </div>

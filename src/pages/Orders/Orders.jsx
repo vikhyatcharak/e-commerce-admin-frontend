@@ -112,7 +112,9 @@ const Orders = () => {
                 isOpen={showCourierModal}
                 order={selectedOrder}
                 onClose={() => setShowCourierModal(false)}
-                onShipmentCreated={() => { setShowCourierModal(false); fetchOrders(); }}
+                onShipmentCreated={() => { fetchOrders() }}
+                onAssignCourier={() => { fetchOrders() }}
+                onGeneratePickup={() => {setShowCourierModal(false); fetchOrders(); }}
             />
         </div>
     )
