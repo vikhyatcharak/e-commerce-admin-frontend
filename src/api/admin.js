@@ -98,7 +98,7 @@ export const ordersAPI = {
 
 
   getPickupLocationById: (id) => AdminApi.get(`/pickup-locations/${id}`),
-  updatePickupLocation: (id, data) => AdminApi.patch(`/pickup-locations/${id}`, data),
+  updatePickupLocation: (data) => AdminApi.patch(`/pickup-locations/${data.id}`, data),
   deletePickupLocation: (id) => AdminApi.delete(`/pickup-locations/${id}`),
 
   setDefaultPickupLocation: (id) => AdminApi.patch(`/pickup-locations/${id}/set-default`),
@@ -108,10 +108,10 @@ export const ordersAPI = {
   assignCourier:(data)=>AdminApi.post(`/shiprocket/assign-courier`,data),//
   generatePickup:(shipmentId)=>AdminApi.post(`/shiprocket/generate-pickup`,shipmentId),//
   getShipmentDetails: (shipmentId) => AdminApi.get(`/shiprocket/shipment/${shipmentId}`),
-  trackShipment: (orderId) => AdminApi.get(`/shiprocket/track/${orderId}`),
-  getShipmentLabel: (orderIds) => AdminApi.post(`/shiprocket/label`, orderIds),
-  getShipmentInvoice: (orderIds) => AdminApi.post(`/shiprocket/invoice`, orderIds),
-  getShipmentManifest: (shipmentIds) => AdminApi.post(`/shiprocket/manifest`, shipmentIds),
+  trackShipment: (params) => AdminApi.get(`/shiprocket/track`,{params}),//
+  getShipmentLabel: (data) => AdminApi.post(`/shiprocket/label`, data),
+  getShipmentInvoice: (data) => AdminApi.post(`/shiprocket/invoice`, data),
+  getShipmentManifest: (data) => AdminApi.post(`/shiprocket/manifest`, data),
   cancelShipment: (orderIds) => AdminApi.post(`/shiprocket/cancel-shipment`,orderIds),
   returnShipment: (returnData) => AdminApi.post(`/shiprocket/return-order`, returnData),
 

@@ -8,14 +8,15 @@ import OrderDetailsModal from '../Orders/modals/OrderDetailsModal.jsx'
 const ShippingManagement = () => {
     const [activeTab, setActiveTab] = useState('overview')
     const [loading, setLoading] = useState(true)
-    
+
     // State for different data sets
     const [pickupLocations, setPickupLocations] = useState([])
+    const [orders, setOrders] = useState([])
     const [shiprocketOrders, setShiprocketOrders] = useState([])
     const [shippingStats, setShippingStats] = useState({})
     const [trackingInput, setTrackingInput] = useState('')
     const [trackingResult, setTrackingResult] = useState(null)
-    
+
     // Modal states
     const [showLocationModal, setShowLocationModal] = useState(false)
     const [showCourierModal, setShowCourierModal] = useState(false)
@@ -23,20 +24,14 @@ const ShippingManagement = () => {
     const [selectedOrder, setSelectedOrder] = useState(null)
     const [editLocation, setEditLocation] = useState(null)
 
-    // Pagination and filtering
-    const [currentPage, setCurrentPage] = useState(1)
-    const [ordersPerPage] = useState(10)
-    const [filterStatus, setFilterStatus] = useState('all')
-    const [searchQuery, setSearchQuery] = useState('')
 
     useEffect(() => {
         fetchInitialData()
-        
-        // Set up auto-sync interval for shipping orders (every 10 minutes)
+
         const autoSyncInterval = setInterval(() => {
             fetchInitialData()
         }, 30 * 60 * 1000)
-        
+
         return () => clearInterval(autoSyncInterval)
     }, [])
 
@@ -45,6 +40,7 @@ const ShippingManagement = () => {
         try {
             await Promise.all([
                 fetchPickupLocations(),
+                fetchOrders(),
                 fetchShiprocketOrders(),
                 fetchShippingStats()
             ])
@@ -60,24 +56,46 @@ const ShippingManagement = () => {
         try {
             const response = await ordersAPI.getPickupLocations()
             if (response.data.success) {
-                setPickupLocations(response.data.data)
+                let data = response.data.data
+                if (!Array.isArray(data)) {
+                    data = data ? [data] : []
+                }
+                setPickupLocations(data)
             }
         } catch (error) {
             console.error('Error fetching pickup locations:', error)
         }
     }
 
+    const fetchOrders = async () => {
+        try {
+            setLoading(true)
+            const response = await ordersAPI.getAllOrders()
+            if (response.data?.success) {
+                let data = response.data.data
+                if (!Array.isArray(data)) {
+                    data = data ? [data] : []
+                }
+                setOrders(data)
+            }
+        } catch (error) {
+            console.error('Error fetching orders:', error)
+            setOrders([])
+        } finally {
+            setLoading(false)
+        }
+    }
+
     const fetchShiprocketOrders = async () => {
         try {
-            const response = await ordersAPI.getAllOrders()
-            if (response.data.success) {
+            if (orders.length > 0) {
                 // Filter orders that have Shiprocket integration
-                const ordersWithShiprocket = Array.isArray(response.data.data) 
-                    ? response.data.data.filter(order => order.shiprocket_order_id || order.shiprocket_awb)
-                    : response.data.data.shiprocket_order_id || response.data.data.shiprocket_awb 
-                        ? [response.data.data] 
+                const ordersWithShiprocket = Array.isArray(orders)
+                    ? orders.filter(order => order.shiprocket_order_id || order.shiprocket_awb)
+                    : orders.shiprocket_order_id || orders.shiprocket_awb
+                        ? [orders]
                         : []
-                
+
                 setShiprocketOrders(ordersWithShiprocket)
             }
         } catch (error) {
@@ -87,19 +105,16 @@ const ShippingManagement = () => {
 
     const fetchShippingStats = async () => {
         try {
-            const response = await ordersAPI.getAllOrders()
-            if (response.data.success) {
-                const orders = Array.isArray(response.data.data) ? response.data.data : [response.data.data]
-                
+            if (orders.length > 0) {
                 const stats = {
                     totalOrders: orders.length,
-                    shippedOrders: orders.filter(o => o.shiprocket_awb).length,
+                    shippedOrders: orders.filter(o => o.awb_code).length,
                     pendingShipments: orders.filter(o => o.delivery_status === 'pending' && !o.shiprocket_awb).length,
                     deliveredOrders: orders.filter(o => o.delivery_status === 'delivered').length,
                     totalRevenue: orders.reduce((sum, o) => sum + (parseFloat(o.final_total) || 0), 0),
                     averageDeliveryTime: '3-5 days', // This would be calculated from actual delivery data
                 }
-                
+
                 setShippingStats(stats)
             }
         } catch (error) {
@@ -109,7 +124,7 @@ const ShippingManagement = () => {
 
     const handleTrackShipment = async () => {
         if (!trackingInput.trim()) {
-            toast.error('Please enter an AWB number')
+            toast.error('Please input a valid shipment')
             return
         }
 
@@ -126,7 +141,7 @@ const ShippingManagement = () => {
     }
 
     const handleCreateShipment = async (orderId) => {
-        setSelectedOrder(shiprocketOrders.find(o => o.id === orderId))
+        setSelectedOrder(orders.find(o => o.id === orderId))
         setShowCourierModal(true)
     }
 
@@ -146,7 +161,10 @@ const ShippingManagement = () => {
 
     const handleSetDefaultLocation = async (locationId) => {
         try {
-            const response = await ordersAPI.setDefaultPickupLocation(locationId)
+            let data = {}
+            if (locationId) data.id = locationId
+            data.is_default = true
+            const response = await ordersAPI.setDefaultPickupLocation(data)
             if (response.data.success) {
                 toast.success('Default pickup location updated')
                 fetchPickupLocations()
@@ -158,16 +176,12 @@ const ShippingManagement = () => {
 
     const handleDownloadLabel = async (orderId) => {
         try {
-            const response = await ordersAPI.getShipmentLabel(orderId)
-            const blob = new Blob([response.data], { type: 'application/pdf' })
-            const url = window.URL.createObjectURL(blob)
-            const link = document.createElement('a')
-            link.href = url
-            link.download = `shipping-label-${orderId}.pdf`
-            document.body.appendChild(link)
-            link.click()
-            document.body.removeChild(link)
-            window.URL.revokeObjectURL(url)
+            const data = {}
+            data.orderId = selectedOrder
+            data.orderIds = [orderId]
+            const response = await ordersAPI.getShipmentLabel(data)
+            const url = response.data.data.labelUrl
+            window.open(url, '_blank')
             toast.success('Shipping label downloaded')
         } catch (error) {
             toast.error('Failed to download shipping label')
@@ -175,58 +189,30 @@ const ShippingManagement = () => {
     }
     const handleDownloadInvoice = async (orderId) => {
         try {
-            const response = await ordersAPI.getShipmentInvoice(orderId)
-            const blob = new Blob([response.data], { type: 'application/pdf' })
-            const url = window.URL.createObjectURL(blob)
-            const link = document.createElement('a')
-            link.href = url
-            link.download = `shipping-label-${orderId}.pdf`
-            document.body.appendChild(link)
-            link.click()
-            document.body.removeChild(link)
-            window.URL.revokeObjectURL(url)
+            const data = {}
+            data.orderId = selectedOrder
+            data.orderIds = [orderId]
+            const response = await ordersAPI.getShipmentInvoice(data)
+            const url = response.data.data.invoiceUrl
+            window.open(url, '_blank')
             toast.success('Shipping label downloaded')
         } catch (error) {
             toast.error('Failed to download shipping label')
         }
     }
-    const handleDownloadManifest = async (orderId) => {
+    const handleDownloadManifest = async (shipmentId) => {
         try {
-            const response = await ordersAPI.getShipmentManifest(orderId)
-            const blob = new Blob([response.data], { type: 'application/pdf' })
-            const url = window.URL.createObjectURL(blob)
-            const link = document.createElement('a')
-            link.href = url
-            link.download = `shipping-label-${orderId}.pdf`
-            document.body.appendChild(link)
-            link.click()
-            document.body.removeChild(link)
-            window.URL.revokeObjectURL(url)
+            const data = {}
+            data.orderId = selectedOrder
+            data.shipmentIds = [shipmentId]
+            const response = await ordersAPI.getShipmentManifest(data)
+            const url = response.data.data.manifestUrl
+            window.open(url, '_blank')
             toast.success('Shipping label downloaded')
         } catch (error) {
             toast.error('Failed to download shipping label')
         }
     }
-
-    // Filter orders based on status and search
-    const filteredOrders = shiprocketOrders.filter(order => {
-        const matchesStatus = filterStatus === 'all' || 
-            (filterStatus === 'pending' && !order.shiprocket_awb) ||
-            (filterStatus === 'shipped' && order.shiprocket_awb && order.delivery_status !== 'delivered') ||
-            (filterStatus === 'delivered' && order.delivery_status === 'delivered')
-        
-        const matchesSearch = !searchQuery || 
-            order.id.toString().includes(searchQuery) ||
-            order.shiprocket_awb?.includes(searchQuery)
-        
-        return matchesStatus && matchesSearch
-    })
-
-    // Pagination
-    const indexOfLastOrder = currentPage * ordersPerPage
-    const indexOfFirstOrder = indexOfLastOrder - ordersPerPage
-    const currentOrders = filteredOrders.slice(indexOfFirstOrder, indexOfLastOrder)
-    const totalPages = Math.ceil(filteredOrders.length / ordersPerPage)
 
     if (loading) {
         return (
@@ -323,11 +309,10 @@ const ShippingManagement = () => {
                         <button
                             key={tab.id}
                             onClick={() => setActiveTab(tab.id)}
-                            className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
-                                activeTab === tab.id
-                                    ? 'border-blue-500 text-blue-600'
-                                    : 'border-transparent text-gray-500 hover:text-gray-700'
-                            }`}
+                            className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${activeTab === tab.id
+                                ? 'border-blue-500 text-blue-600'
+                                : 'border-transparent text-gray-500 hover:text-gray-700'
+                                }`}
                         >
                             <span>{tab.icon}</span>
                             {tab.label}
@@ -408,7 +393,7 @@ const ShippingManagement = () => {
                             </button>
                         </div>
                     </div>
-                    
+
                     <div className="p-6">
                         {pickupLocations.length === 0 ? (
                             <div className="text-center py-12">
@@ -445,7 +430,7 @@ const ShippingManagement = () => {
                                                 </p>
                                             </div>
                                         </div>
-                                        
+
                                         <div className="flex gap-2">
                                             {!location.is_default && (
                                                 <button
@@ -508,7 +493,7 @@ const ShippingManagement = () => {
                             </div>
                         </div>
                     </div>
-                    
+
                     <div className="p-6">
                         {currentOrders.length === 0 ? (
                             <div className="text-center py-12">
@@ -539,7 +524,7 @@ const ShippingManagement = () => {
                                                         </div>
                                                     </div>
                                                 </div>
-                                                
+
                                                 <div className="flex gap-2">
                                                     <button
                                                         onClick={() => {
@@ -550,7 +535,7 @@ const ShippingManagement = () => {
                                                     >
                                                         View Details
                                                     </button>
-                                                    
+
                                                     {!order.shiprocket_awb ? (
                                                         <button
                                                             onClick={() => handleCreateShipment(order.id)}
@@ -608,11 +593,10 @@ const ShippingManagement = () => {
                                             <button
                                                 key={idx}
                                                 onClick={() => setCurrentPage(idx + 1)}
-                                                className={`px-4 py-2 border rounded ${
-                                                    currentPage === idx + 1 
-                                                        ? 'bg-blue-600 text-white border-blue-600' 
-                                                        : 'border-gray-300 hover:bg-gray-50'
-                                                }`}
+                                                className={`px-4 py-2 border rounded ${currentPage === idx + 1
+                                                    ? 'bg-blue-600 text-white border-blue-600'
+                                                    : 'border-gray-300 hover:bg-gray-50'
+                                                    }`}
                                             >
                                                 {idx + 1}
                                             </button>
@@ -629,7 +613,7 @@ const ShippingManagement = () => {
                 <div className="max-w-2xl mx-auto">
                     <div className="bg-white rounded-lg border border-gray-200 p-6">
                         <h3 className="text-lg font-semibold mb-4">Quick AWB Tracking</h3>
-                        
+
                         <div className="flex gap-3 mb-6">
                             <input
                                 type="text"
@@ -680,7 +664,7 @@ const ShippingManagement = () => {
                 <div className="space-y-6">
                     <div className="bg-white rounded-lg border border-gray-200 p-6">
                         <h3 className="text-lg font-semibold mb-4">Shipping Analytics</h3>
-                        
+
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                             <div className="text-center">
                                 <div className="text-2xl font-bold text-blue-600">{shippingStats.totalOrders}</div>
@@ -700,7 +684,7 @@ const ShippingManagement = () => {
                             </div>
                         </div>
                     </div>
-                    
+
                     <div className="bg-white rounded-lg border border-gray-200 p-6">
                         <h4 className="font-semibold mb-3">Performance Metrics</h4>
                         <div className="space-y-3">
@@ -711,7 +695,7 @@ const ShippingManagement = () => {
                             <div className="flex justify-between items-center">
                                 <span>Delivery Success Rate</span>
                                 <span className="font-medium text-green-600">
-                                    {shippingStats.totalOrders > 0 
+                                    {shippingStats.totalOrders > 0
                                         ? Math.round((shippingStats.deliveredOrders / shippingStats.totalOrders) * 100)
                                         : 0}%
                                 </span>
