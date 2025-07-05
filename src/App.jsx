@@ -16,7 +16,7 @@ import Users from './pages/Users/Users.jsx'
 import Orders from './pages/Orders/Orders.jsx'
 import Coupons from './pages/Coupons/Coupons.jsx'
 import EmailTemplates from './pages/Email_Templates/EmailTemplates.jsx'
-import ShippingManagement from './pages/Shipping/ShippingManagement.jsx'
+import ShippingManagement from './pages/shipping/ShippingManagement.jsx'
 
 import { ToastContainer } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
