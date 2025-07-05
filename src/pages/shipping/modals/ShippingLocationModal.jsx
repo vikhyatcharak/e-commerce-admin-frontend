@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { ordersAPI } from '../../../api/admin.js'
 import { toast } from 'react-toastify'
 
-const ShippingLocationModal = ({ isOpen, onClose, onLocationCreated, editLocation = null }) => {
+const ShippingLocationModal = ({ isOpen, onClose, onLocationCreated, onEditLocation, editLocation = null }) => {
     const [formData, setFormData] = useState({
         location_name: '',
         address: '',
@@ -162,6 +162,7 @@ const ShippingLocationModal = ({ isOpen, onClose, onLocationCreated, editLocatio
         })
         setError('')
         setActiveTab('create')
+        onEditLocation(null)
         onClose()
     }
 
@@ -282,6 +283,19 @@ const ShippingLocationModal = ({ isOpen, onClose, onLocationCreated, editLocatio
                                         placeholder="State name"
                                         value={formData.state}
                                         onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Country *
+                                    </label>
+                                    <input
+                                        type="text"
+                                        required
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        placeholder="Country name"
+                                        value={formData.country}
+                                        onChange={(e) => setFormData({ ...formData, country: e.target.value })}
                                     />
                                 </div>
                                 <div>
@@ -421,6 +435,7 @@ const ShippingLocationModal = ({ isOpen, onClose, onLocationCreated, editLocatio
                                                     )}
                                                     <button
                                                         onClick={() => {
+                                                            onEditLocation(location)
                                                             setFormData({
                                                                 location_name: location.location_name,
                                                                 address: location.address,

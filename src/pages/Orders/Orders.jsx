@@ -32,7 +32,9 @@ const Orders = () => {
                 if (!Array.isArray(data)) {
                     data = data ? [data] : []
                 }
-                setOrders(data)
+                const cleaned = data.filter(order => order && typeof order === 'object' && order.id)
+
+                setOrders(cleaned)
             }
         } catch (error) {
             console.error('Error fetching orders:', error)
@@ -66,7 +68,7 @@ const Orders = () => {
         setShowDetailsModal(true)
     }
 
-    if (loading) return(<div className='p-6 mx-auto my-auto text-3xl'>Loading.....</div>)
+    if (loading) return (<div className='p-6 mx-auto my-auto text-3xl'>Loading.....</div>)
     return (
         <div className="p-6">
             {/* Header*/}
@@ -86,19 +88,25 @@ const Orders = () => {
 
             {/* Orders List */}
             <div className="space-y-3">
-                {orders.map((order) => (
+                {orders.length === 0 ? (
+                    <div className="border border-dashed border-gray-300 bg-gray-50 text-center text-gray-500 py-12 rounded-lg">
+                        <div className="text-6xl mb-2">🗒️</div>
+                        <h3 className="text-xl font-semibold mb-1">No Orders Found</h3>
+                        <p className="text-sm">Your order list is empty. Orders will appear here once placed.</p>
+                    </div>
+                ) : (orders.map((order, index) => (
                     <OrderBar
-                        key={order.id}
+                        key={order?.id || `order-${index}`}
                         order={order}
                         showHoverButton={true}
                         isHovered={hoveredOrderId === order.id}
                         onMouseEnter={() => setHoveredOrderId(order.id)}
                         onMouseLeave={() => setHoveredOrderId(null)}
                         onViewDetails={() => handleViewDetails(order)}
-                        onShip={()=>{setSelectedOrder(order); setShowCourierModal(true)}}
+                        onShip={() => { setSelectedOrder(order); setShowCourierModal(true) }}
                         onRefresh={() => fetchOrder(order.id)}
                     />
-                ))}
+                )))}
             </div>
 
             {/* Modals */}
@@ -114,7 +122,7 @@ const Orders = () => {
                 onClose={() => setShowCourierModal(false)}
                 onShipmentCreated={() => { fetchOrders() }}
                 onAssignCourier={() => { fetchOrders() }}
-                onGeneratePickup={() => {setShowCourierModal(false); fetchOrders(); }}
+                onGeneratePickup={() => { setShowCourierModal(false); fetchOrders(); }}
             />
         </div>
     )

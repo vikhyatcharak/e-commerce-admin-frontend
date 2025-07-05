@@ -166,7 +166,7 @@ const ShippingManagement = () => {
     }
 
     const handleSetDefaultLocation = async (locationId) => {
-        if(!confirm("Make this the default pickup location?")) return
+        if (!confirm("Make this the default pickup location?")) return
         try {
             setLoading(true)
             const response = await ordersAPI.setDefaultPickupLocation(locationId)
@@ -686,6 +686,9 @@ const ShippingManagement = () => {
                     fetchPickupLocations()
                     setShowLocationModal(false)
                     setEditLocation(null)
+                }}
+                onEditLocation={(location) => {
+                    setEditLocation(location) // ✅ this sets the prop for edit mode
                 }}
             />
 

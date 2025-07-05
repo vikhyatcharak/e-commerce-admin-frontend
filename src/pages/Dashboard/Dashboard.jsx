@@ -56,7 +56,15 @@ const Dashboard = () => {
       color: 'bg-indigo-500',
       description: 'Saved templates',
       route: '/admin/emailTemplates'
+    },
+    { 
+      label: 'Shipping',
+      icon: '🚚',
+      color:'bg-blue-500',
+      description:'Shipping Management',
+      route: '/admin/shipping'
     }
+
   ]
 
   const handleCardClick = (route) => {
