@@ -95,12 +95,9 @@ export const ordersAPI = {
   getDefaultPickupLocation: () => AdminApi.get(`/pickup-locations/default`),
   getPickupLocationByCity:(city)=> AdminApi.get(`/pickup-locations/city/${city}`),
   getPickupLocationByState:(state)=> AdminApi.get(`/pickup-locations/city/${state}`),
-
-
   getPickupLocationById: (id) => AdminApi.get(`/pickup-locations/${id}`),
   updatePickupLocation: (data) => AdminApi.patch(`/pickup-locations/${data.id}`, data),
   deletePickupLocation: (id) => AdminApi.delete(`/pickup-locations/${id}`),
-
   setDefaultPickupLocation: (id) => AdminApi.patch(`/pickup-locations/${id}/set-default`),
 
   getAvailableCouriers: (data) => AdminApi.post(`/shiprocket/calculate-rates`, data),//

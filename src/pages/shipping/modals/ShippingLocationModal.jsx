@@ -12,7 +12,6 @@ const ShippingLocationModal = ({ isOpen, onClose, onLocationCreated, editLocatio
         country: 'India',
         contact_person: '',
         phone: '',
-        email: '',
         is_default: false
     })
     const [locations, setLocations] = useState([])
@@ -33,7 +32,6 @@ const ShippingLocationModal = ({ isOpen, onClose, onLocationCreated, editLocatio
                     country: editLocation.country || 'India',
                     contact_person: editLocation.contact_person || '',
                     phone: editLocation.phone || '',
-                    email: editLocation.email || '',
                     is_default: editLocation.is_default || false
                 })
                 setActiveTab('create')
@@ -54,31 +52,31 @@ const ShippingLocationModal = ({ isOpen, onClose, onLocationCreated, editLocatio
 
     const validateForm = () => {
         const errors = []
-        
+
         if (!formData.location_name.trim()) errors.push('Location name is required')
         if (!formData.address.trim()) errors.push('Address is required')
         if (!formData.city.trim()) errors.push('City is required')
         if (!formData.state.trim()) errors.push('State is required')
         if (!formData.pincode.trim()) errors.push('Pincode is required')
-        if (!formData.contact_person.trim()) errors.push('Contact person is required')
+        if (!formData.contact_person.trim()) errors.push('Contact Person is required')
         if (!formData.phone.trim()) errors.push('Phone number is required')
-        
+
         // Validate pincode format (6 digits for India)
         if (formData.pincode && !/^\d{6}$/.test(formData.pincode)) {
             errors.push('Pincode must be 6 digits')
         }
-        
+
         // Validate phone format (10 digits for India)
         if (formData.phone && !/^\d{10}$/.test(formData.phone)) {
             errors.push('Phone number must be 10 digits')
         }
-        
+
         return errors
     }
 
     const handleSubmit = async (e) => {
         e.preventDefault()
-        
+
         const validationErrors = validateForm()
         if (validationErrors.length > 0) {
             setError(validationErrors.join(', '))
@@ -91,7 +89,7 @@ const ShippingLocationModal = ({ isOpen, onClose, onLocationCreated, editLocatio
         try {
             let response
             if (editLocation) {
-                response = await ordersAPI.updatePickupLocation(editLocation.id, formData)
+                response = await ordersAPI.updatePickupLocation({ id: editLocation.id, ...formData })
                 toast.success('Pickup location updated successfully!')
             } else {
                 response = await ordersAPI.createPickupLocation(formData)
@@ -111,7 +109,6 @@ const ShippingLocationModal = ({ isOpen, onClose, onLocationCreated, editLocatio
                         country: 'India',
                         contact_person: '',
                         phone: '',
-                        email: '',
                         is_default: false
                     })
                 }
@@ -125,6 +122,7 @@ const ShippingLocationModal = ({ isOpen, onClose, onLocationCreated, editLocatio
     }
 
     const handleSetDefault = async (locationId) => {
+        if (!confirm("Make this the default pickup location?")) return
         try {
             const response = await ordersAPI.setDefaultPickupLocation(locationId)
             if (response.data.success) {
@@ -160,7 +158,6 @@ const ShippingLocationModal = ({ isOpen, onClose, onLocationCreated, editLocatio
             country: 'India',
             contact_person: '',
             phone: '',
-            email: '',
             is_default: false
         })
         setError('')
@@ -168,6 +165,7 @@ const ShippingLocationModal = ({ isOpen, onClose, onLocationCreated, editLocatio
         onClose()
     }
 
+    let isFormIncomplete = !formData.location_name.trim() || !formData.address.trim() || !formData.city.trim() || !formData.state.trim() || !formData.pincode.trim() || !formData.country.trim() || !formData.contact_person.trim() || !formData.phone.trim()
     if (!isOpen) return null
 
     return (
@@ -189,21 +187,19 @@ const ShippingLocationModal = ({ isOpen, onClose, onLocationCreated, editLocatio
                         <nav className="flex space-x-8 px-6">
                             <button
                                 onClick={() => setActiveTab('create')}
-                                className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                                    activeTab === 'create'
-                                        ? 'border-blue-500 text-blue-600'
-                                        : 'border-transparent text-gray-500 hover:text-gray-700'
-                                }`}
+                                className={`py-2 px-1 border-b-2 font-medium text-sm ${activeTab === 'create'
+                                    ? 'border-blue-500 text-blue-600'
+                                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                                    }`}
                             >
                                 Create Location
                             </button>
                             <button
                                 onClick={() => setActiveTab('manage')}
-                                className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                                    activeTab === 'manage'
-                                        ? 'border-blue-500 text-blue-600'
-                                        : 'border-transparent text-gray-500 hover:text-gray-700'
-                                }`}
+                                className={`py-2 px-1 border-b-2 font-medium text-sm ${activeTab === 'manage'
+                                    ? 'border-blue-500 text-blue-600'
+                                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                                    }`}
                             >
                                 Manage Locations ({locations.length})
                             </button>
@@ -236,6 +232,7 @@ const ShippingLocationModal = ({ isOpen, onClose, onLocationCreated, editLocatio
                                         id="is_default"
                                         className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                                         checked={formData.is_default}
+                                        disabled={editLocation?.is_default}
                                         onChange={(e) => setFormData({ ...formData, is_default: e.target.checked })}
                                     />
                                     <label htmlFor="is_default" className="ml-2 block text-sm text-gray-900">
@@ -304,7 +301,7 @@ const ShippingLocationModal = ({ isOpen, onClose, onLocationCreated, editLocatio
                             </div>
 
                             {/* Contact Information */}
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-2">
                                         Contact Person *
@@ -332,18 +329,6 @@ const ShippingLocationModal = ({ isOpen, onClose, onLocationCreated, editLocatio
                                         onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                                     />
                                 </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        Email
-                                    </label>
-                                    <input
-                                        type="email"
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                        placeholder="contact@example.com"
-                                        value={formData.email}
-                                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                                    />
-                                </div>
                             </div>
 
                             {/* Error Display */}
@@ -364,10 +349,20 @@ const ShippingLocationModal = ({ isOpen, onClose, onLocationCreated, editLocatio
                                 </button>
                                 <button
                                     type="submit"
-                                    disabled={loading}
+                                    disabled={loading || isFormIncomplete}
                                     className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50"
                                 >
-                                    {loading ? 'Saving...' : (editLocation ? 'Update Location' : 'Create Location')}
+                                    {loading ? (
+                                        <div className="flex items-center gap-2">
+                                            <svg className="animate-spin h-4 w-4 text-white" viewBox="0 0 24 24" fill="none">
+                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 00-8 8z" />
+                                            </svg>
+                                            Saving...
+                                        </div>
+                                    ) : (
+                                        editLocation ? 'Update Location' : 'Create Location'
+                                    )}
                                 </button>
                             </div>
                         </form>
@@ -417,6 +412,7 @@ const ShippingLocationModal = ({ isOpen, onClose, onLocationCreated, editLocatio
                                                 <div className="flex gap-2 ml-4">
                                                     {!location.is_default && (
                                                         <button
+                                                            disabled={loading}
                                                             onClick={() => handleSetDefault(location.id)}
                                                             className="text-blue-600 hover:text-blue-800 text-sm px-2 py-1 border border-blue-200 rounded"
                                                         >
@@ -434,7 +430,6 @@ const ShippingLocationModal = ({ isOpen, onClose, onLocationCreated, editLocatio
                                                                 country: location.country || 'India',
                                                                 contact_person: location.contact_person,
                                                                 phone: location.phone,
-                                                                email: location.email || '',
                                                                 is_default: location.is_default
                                                             })
                                                             setActiveTab('create')

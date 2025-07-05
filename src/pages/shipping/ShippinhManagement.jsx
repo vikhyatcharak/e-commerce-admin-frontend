@@ -39,10 +39,10 @@ const ShippingManagement = () => {
         setLoading(true)
         try {
             await Promise.all([
-                fetchPickupLocations(),
-                fetchOrders(),
-                fetchShiprocketOrders(),
-                fetchShippingStats()
+                await fetchPickupLocations(),
+                await fetchOrders(),
+                await fetchShiprocketOrders(),
+                await fetchShippingStats()
             ])
         } catch (error) {
             console.error('Error fetching initial data:', error)
@@ -88,6 +88,7 @@ const ShippingManagement = () => {
 
     const fetchShiprocketOrders = async () => {
         try {
+            setLoading(true)
             if (orders.length > 0) {
                 // Filter orders that have Shiprocket integration
                 const ordersWithShiprocket = Array.isArray(orders)
@@ -100,6 +101,8 @@ const ShippingManagement = () => {
             }
         } catch (error) {
             console.error('Error fetching Shiprocket orders:', error)
+        } finally {
+            setLoading(false)
         }
     }
 
@@ -149,6 +152,7 @@ const ShippingManagement = () => {
         if (!confirm('Are you sure you want to delete this pickup location?')) return
 
         try {
+            setLoading(true)
             const response = await ordersAPI.deletePickupLocation(locationId)
             if (response.data.success) {
                 toast.success('Pickup location deleted')
@@ -156,28 +160,31 @@ const ShippingManagement = () => {
             }
         } catch (error) {
             toast.error('Failed to delete location')
+        } finally {
+            setLoading(false)
         }
     }
 
     const handleSetDefaultLocation = async (locationId) => {
+        if(!confirm("Make this the default pickup location?")) return
         try {
-            let data = {}
-            if (locationId) data.id = locationId
-            data.is_default = true
-            const response = await ordersAPI.setDefaultPickupLocation(data)
+            setLoading(true)
+            const response = await ordersAPI.setDefaultPickupLocation(locationId)
             if (response.data.success) {
                 toast.success('Default pickup location updated')
                 fetchPickupLocations()
             }
         } catch (error) {
             toast.error('Failed to set default location')
+        } finally {
+            setLoading(false)
         }
     }
 
     const handleDownloadLabel = async (orderId) => {
         try {
             const data = {}
-            data.orderId = selectedOrder
+            data.orderId = selectedOrder.id
             data.orderIds = [orderId]
             const response = await ordersAPI.getShipmentLabel(data)
             const url = response.data.data.labelUrl
@@ -190,7 +197,7 @@ const ShippingManagement = () => {
     const handleDownloadInvoice = async (orderId) => {
         try {
             const data = {}
-            data.orderId = selectedOrder
+            data.orderId = selectedOrder.id
             data.orderIds = [orderId]
             const response = await ordersAPI.getShipmentInvoice(data)
             const url = response.data.data.invoiceUrl
@@ -203,7 +210,7 @@ const ShippingManagement = () => {
     const handleDownloadManifest = async (shipmentId) => {
         try {
             const data = {}
-            data.orderId = selectedOrder
+            data.orderId = selectedOrder.id
             data.shipmentIds = [shipmentId]
             const response = await ordersAPI.getShipmentManifest(data)
             const url = response.data.data.manifestUrl
@@ -434,6 +441,7 @@ const ShippingManagement = () => {
                                         <div className="flex gap-2">
                                             {!location.is_default && (
                                                 <button
+                                                    disabled={loading}
                                                     onClick={() => handleSetDefaultLocation(location.id)}
                                                     className="text-blue-600 hover:text-blue-800 text-sm px-2 py-1 border border-blue-200 rounded"
                                                 >
@@ -454,7 +462,7 @@ const ShippingManagement = () => {
                                                 onClick={() => handleDeleteLocation(location.id)}
                                                 className="text-red-600 hover:text-red-800 p-1"
                                                 title="Delete Location"
-                                                disabled={location.is_default}
+                                                disabled={location.is_default || loading}
                                             >
                                                 🗑️
                                             </button>
