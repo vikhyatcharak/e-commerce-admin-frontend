@@ -34,7 +34,7 @@ const Users = () => {
         setLoadingOrders(true)
 
         try {
-            const response = await usersAPI.getUserOrders(user.id)
+            const response = await usersAPI.getUserOrders(user?.id)
             if (response.data?.success) {
                 setOrders(response.data.data || [])
             }

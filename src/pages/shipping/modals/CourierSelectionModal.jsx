@@ -27,9 +27,14 @@ const CourierSelectionModal = ({ isOpen, order, onClose, onShipmentCreated, onAs
     useEffect(() => {
         if (order?.id) fetchOrderItems(order.id)
         if (order?.user_id) fetchUser(order.user_id)
-        if (order?.customer_address_id) fetchUserAddress(order.customer_address_id)
         if (order?.shipment_id) setShipmentId(order.shipment_id)
     }, [order])
+
+    useEffect(() => {
+        if (user && order?.customer_address_id) {
+            fetchUserAddress(order.customer_address_id)
+        }
+    }, [user])
 
     useEffect(() => {
         if (alreadyHasShipment) {
@@ -62,7 +67,7 @@ const CourierSelectionModal = ({ isOpen, order, onClose, onShipmentCreated, onAs
         try {
             const response = await usersAPI.getUserById(id)
             if (response.data?.success && response.data.data) {
-                setUser(response.data.data)
+                setUser(response.data?.data)
             }
         } catch (err) {
             console.error("Error fetching user", err)
@@ -70,7 +75,7 @@ const CourierSelectionModal = ({ isOpen, order, onClose, onShipmentCreated, onAs
     }
 
     const fetchUserAddress = async (id) => {
-        const response = await ordersAPI.getCustomerAddressById(id)
+        const response = await ordersAPI.getCustomerAddressById({id})
         if (response.data.success && response.data.data) {
             setUserAddress(response.data.data)
         }
@@ -111,10 +116,12 @@ const CourierSelectionModal = ({ isOpen, order, onClose, onShipmentCreated, onAs
             const response = await ordersAPI.getOrderItems(id)
             if (response.data?.success) {
                 let data = response.data.data
-                if (!Array.isArray(data)) {
-                    data = data ? [data] : []
-                }
-                setOrderItems(data)
+                // Force single object to array if needed
+                const normalizedData = Array.isArray(data) ? data : [data]
+
+                // Only filter out null/undefined
+                const cleaned = normalizedData.filter(item => !!item && typeof item === 'object')
+                setOrderItems(cleaned)
             }
         } catch (error) {
             console.error('Error fetching order items:', error)

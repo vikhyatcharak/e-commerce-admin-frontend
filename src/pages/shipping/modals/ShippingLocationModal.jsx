@@ -12,11 +12,13 @@ const ShippingLocationModal = ({ isOpen, onClose, onLocationCreated, onEditLocat
         country: 'India',
         contact_person: '',
         phone: '',
+        email: '',
         is_default: false
     })
     const [locations, setLocations] = useState([])
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState('')
+    const [originalLocationName, setOriginalLocationName] = useState('')
     const [activeTab, setActiveTab] = useState('create') // 'create' or 'manage'
 
     useEffect(() => {
@@ -32,6 +34,7 @@ const ShippingLocationModal = ({ isOpen, onClose, onLocationCreated, onEditLocat
                     country: editLocation.country || 'India',
                     contact_person: editLocation.contact_person || '',
                     phone: editLocation.phone || '',
+                    email: editLocation.email || '',
                     is_default: editLocation.is_default || false
                 })
                 setActiveTab('create')
@@ -60,6 +63,7 @@ const ShippingLocationModal = ({ isOpen, onClose, onLocationCreated, onEditLocat
         if (!formData.pincode.trim()) errors.push('Pincode is required')
         if (!formData.contact_person.trim()) errors.push('Contact Person is required')
         if (!formData.phone.trim()) errors.push('Phone number is required')
+        if (!formData.email.trim()) errors.push('email is required')
 
         // Validate pincode format (6 digits for India)
         if (formData.pincode && !/^\d{6}$/.test(formData.pincode)) {
@@ -109,6 +113,7 @@ const ShippingLocationModal = ({ isOpen, onClose, onLocationCreated, onEditLocat
                         country: 'India',
                         contact_person: '',
                         phone: '',
+                        email: '',
                         is_default: false
                     })
                 }
@@ -158,6 +163,7 @@ const ShippingLocationModal = ({ isOpen, onClose, onLocationCreated, onEditLocat
             country: 'India',
             contact_person: '',
             phone: '',
+            email: '',
             is_default: false
         })
         setError('')
@@ -166,7 +172,7 @@ const ShippingLocationModal = ({ isOpen, onClose, onLocationCreated, onEditLocat
         onClose()
     }
 
-    let isFormIncomplete = !formData.location_name.trim() || !formData.address.trim() || !formData.city.trim() || !formData.state.trim() || !formData.pincode.trim() || !formData.country.trim() || !formData.contact_person.trim() || !formData.phone.trim()
+    let isFormIncomplete = !formData.location_name.trim() || !formData.address.trim() || !formData.city.trim() || !formData.state.trim() || !formData.pincode.trim() || !formData.country.trim() || !formData.contact_person.trim() || !formData.phone.trim() || !formData.email.trim()
     if (!isOpen) return null
 
     return (
@@ -221,6 +227,7 @@ const ShippingLocationModal = ({ isOpen, onClose, onLocationCreated, onEditLocat
                                     <input
                                         type="text"
                                         required
+                                        disabled={originalLocationName!==''}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                         placeholder="e.g., Main Warehouse, Delhi Hub"
                                         value={formData.location_name}
@@ -343,6 +350,19 @@ const ShippingLocationModal = ({ isOpen, onClose, onLocationCreated, onEditLocat
                                         onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                                     />
                                 </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Email *
+                                    </label>
+                                    <input
+                                        type="tel"
+                                        required
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        placeholder="valid email address"
+                                        value={formData.email}
+                                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                                    />
+                                </div>
                             </div>
 
                             {/* Error Display */}
@@ -420,7 +440,7 @@ const ShippingLocationModal = ({ isOpen, onClose, onLocationCreated, onEditLocat
                                                     <div className="text-sm text-gray-500">
                                                         <span>{location.city}, {location.state} - {location.pincode}</span>
                                                         <span className="mx-2">•</span>
-                                                        <span>Contact: {location.contact_person} ({location.phone})</span>
+                                                        <span>Contact: {location.contact_person} ({location.phone},{location.email})</span>
                                                     </div>
                                                 </div>
                                                 <div className="flex gap-2 ml-4">
@@ -445,8 +465,10 @@ const ShippingLocationModal = ({ isOpen, onClose, onLocationCreated, onEditLocat
                                                                 country: location.country || 'India',
                                                                 contact_person: location.contact_person,
                                                                 phone: location.phone,
+                                                                email: location.email,
                                                                 is_default: location.is_default
                                                             })
+                                                            setOriginalLocationName(editLocation.location_name || '')
                                                             setActiveTab('create')
                                                         }}
                                                         className="text-yellow-600 hover:text-yellow-800 p-1"

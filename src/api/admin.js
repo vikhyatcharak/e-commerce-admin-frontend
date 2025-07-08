@@ -76,15 +76,15 @@ export const emailTemplatesAPI = {
 
 export const usersAPI = {
   getUsers: () => AdminApi.get('/users'),
-  getUserOrders: (id) => AdminApi.get(`/${id}/orders`),
-  getUserById:(id)=>AdminApi.get(`/${id}`)
+  getUserOrders: (id) => AdminApi.get(`/users/${id}/orders`),
+  getUserById:(id)=>AdminApi.get(`/users/lookup/${id}`)
 }
 
 export const ordersAPI = {
   getAllOrders: () => AdminApi.get(`/orders`),
   updateOrderPaymentStatus: (data) => AdminApi.patch(`/orders/payment`, data),
   updateOrderDeliveryStatus: (data) => AdminApi.patch(`/orders/delivery`, data),
-  getCustomerAddressById: (params) => AdminApi.get(`/orders/delivery`, {params}),
+  getCustomerAddressById: (params) => AdminApi.get(`/orders/customer-address`, {params}),
   getOrderItems: (id) => AdminApi.get(`/orders/${id}/items`),
   getOrderById: (id) => AdminApi.get(`/orders/${id}`),
 

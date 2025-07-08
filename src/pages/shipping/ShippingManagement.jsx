@@ -433,7 +433,7 @@ const ShippingManagement = () => {
                                                     {location.city}, {location.state} - {location.pincode}
                                                 </p>
                                                 <p className="text-xs text-gray-500 mt-1">
-                                                    Contact: {location.contact_person} ({location.phone})
+                                                    Contact: {location.contact_person} ({location.phone},{location.email})
                                                 </p>
                                             </div>
                                         </div>

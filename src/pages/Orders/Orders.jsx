@@ -29,12 +29,15 @@ const Orders = () => {
             const response = await ordersAPI.getAllOrders()
             if (response.data?.success) {
                 let data = response.data.data
-                if (!Array.isArray(data)) {
-                    data = data ? [data] : []
-                }
-                const cleaned = data.filter(order => order && typeof order === 'object' && order.id)
+                // Force single object to array if needed
+                const normalizedData = Array.isArray(data) ? data : [data]
+
+                // Only filter out null/undefined
+                const cleaned = normalizedData.filter(order => !!order && typeof order === 'object')
 
                 setOrders(cleaned)
+            } else {
+                setOrders([])
             }
         } catch (error) {
             console.error('Error fetching orders:', error)
@@ -43,6 +46,7 @@ const Orders = () => {
             setLoading(false)
         }
     }
+
 
     const fetchOrder = async (id) => {
         try {
