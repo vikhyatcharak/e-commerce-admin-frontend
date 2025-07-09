@@ -109,7 +109,7 @@ export const ordersAPI = {
   getShipmentLabel: (data) => AdminApi.post(`/shiprocket/label`, data),
   getShipmentInvoice: (data) => AdminApi.post(`/shiprocket/invoice`, data),
   getShipmentManifest: (data) => AdminApi.post(`/shiprocket/manifest`, data),
-  cancelShipment: (orderIds) => AdminApi.post(`/shiprocket/cancel-shipment`, {orderIds}),
+  cancelShipment: (orderIds) => AdminApi.post(`/shiprocket/cancel-shipment`, orderIds),
   returnShipment: (data) => AdminApi.post(`/shiprocket/return-order`, data),
 
 }

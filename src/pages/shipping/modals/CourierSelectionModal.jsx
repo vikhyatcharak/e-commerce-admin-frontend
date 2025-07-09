@@ -199,14 +199,14 @@ const CourierSelectionModal = ({ isOpen, order, onClose, onShipmentCreated, onAs
 
         try {
             const selectedCourierData = availableCouriers.find(c => c.courier_company_id === selectedCourier)
+            const finalAmount = parseFloat(selectedCourierData.rate || 0) + parseFloat(selectedCourierData.cod_charges || 0) + parseFloat(selectedCourierData.coverage_charges || 0) + parseFloat(selectedCourierData.other_charges || 0) + parseFloat(selectedCourierData.entry_tax || 0)
+
             const assignData = {
                 shipmentId,
                 courierId: selectedCourier,
                 orderId: order.id,
-                awb_code: selectedCourierData.awb_code || '',
-                courier_company_id: selectedCourierData.courier_company_id,
                 courier_name: selectedCourierData.courier_name,
-                shipping_cost: parseFloat(selectedCourierData.rate),
+                shipping_cost: parseFloat(finalAmount),
                 estimated_delivery_days: selectedCourierData.estimated_delivery_days
             }
             const response = await ordersAPI.assignCourier(assignData)
