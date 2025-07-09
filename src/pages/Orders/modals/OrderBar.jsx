@@ -1,7 +1,8 @@
 import React, { useState } from 'react'
 const OrderBar = ({ order, showHoverButton = false, isHovered = false, onMouseEnter, onMouseLeave, onViewDetails, onShip,onRefresh }) => {
 
-    const hasShiprocketIntegration = order.shiprocket_order_id || order.shiprocket_awb
+    const hasShiprocketIntegration = order.delivery_status!="pending"
+    const courierAssigned=order.courier_company_id
 
     return (
         <div className="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md transition-all duration-200 cursor-pointer" 
@@ -15,7 +16,7 @@ const OrderBar = ({ order, showHoverButton = false, isHovered = false, onMouseEn
                     <div>
                         <div className="flex items-center gap-2">
                             <h3 className="text-lg font-semibold text-gray-900">Order #{order.id}</h3>
-                            {hasShiprocketIntegration && (
+                            {courierAssigned && (
                                 <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
                                     📦 Shiprocket
                                 </span>

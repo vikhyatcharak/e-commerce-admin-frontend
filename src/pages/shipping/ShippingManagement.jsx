@@ -127,7 +127,7 @@ const ShippingManagement = () => {
 
     const handleTrackShipment = async () => {
         if (!trackingInput.trim()) {
-            toast.error('Please input a valid AWB number')
+            toast.error('Please input a valid order_id')
             return
         }
 
@@ -544,19 +544,19 @@ const ShippingManagement = () => {
                                                                 Track
                                                             </button>
                                                             <button
-                                                                onClick={() => handleDownloadLabel(order.id)}
+                                                                onClick={() => handleDownloadLabel(order.shiprocket_order_id)}
                                                                 className="bg-purple-600 text-white px-3 py-1 rounded text-sm hover:bg-purple-700"
                                                             >
                                                                 Label
                                                             </button>
                                                             <button
-                                                                onClick={() => handleDownloadInvoice(order.id)}
+                                                                onClick={() => handleDownloadInvoice(order.shiprocket_order_id)}
                                                                 className="bg-purple-600 text-white px-3 py-1 rounded text-sm hover:bg-purple-700"
                                                             >
                                                                 Invoice
                                                             </button>
                                                             <button
-                                                                onClick={() => handleDownloadManifest(order.id)}
+                                                                onClick={() => handleDownloadManifest(order.shipment_id)}
                                                                 className="bg-purple-600 text-white px-3 py-1 rounded text-sm hover:bg-purple-700"
                                                             >
                                                                 Manifest
@@ -577,16 +577,16 @@ const ShippingManagement = () => {
             {activeTab === 'tracking' && (
                 <div className="max-w-2xl mx-auto">
                     <div className="bg-white rounded-lg border border-gray-200 p-6">
-                        <h3 className="text-lg font-semibold mb-4">Quick AWB Tracking</h3>
+                        <h3 className="text-lg font-semibold mb-4">Quick Tracking</h3>
 
                         <div className="flex gap-3 mb-6">
                             <input
-                                type="text"
-                                placeholder="Enter AWB number..."
+                                type="number"
+                                placeholder="Enter shiprocket_order_id..."
                                 value={trackingInput}
                                 onChange={(e) => setTrackingInput(e.target.value)}
                                 className="flex-1 px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                onKeyPress={(e) => e.key === 'Enter' && handleTrackShipment()}
+                                onKeyDown={(e) => e.key === 'Enter' && handleTrackShipment()}
                             />
                             <button
                                 onClick={handleTrackShipment}
