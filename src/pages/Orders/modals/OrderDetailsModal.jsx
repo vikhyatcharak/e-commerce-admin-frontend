@@ -4,7 +4,7 @@ import { ordersAPI } from '../../../api/admin'
 const OrderDetailsModal = ({ isOpen, order, onClose }) => {
 
   const [orderItems, setOrderItems] = useState([])
-  const shipmentCreated = !!order?.shipment_id
+  const shipmentCreated = !!order?.shipment_id || !!order?.shiprocket_order_id
   const courierAssigned = !!order?.shiprocket_awb || !!order?.courier_company_name || !!order?.courier_company_id
 
 
@@ -148,6 +148,10 @@ const OrderDetailsModal = ({ isOpen, order, onClose }) => {
                   <span>Shipment ID:</span>
                   <span className="font-medium">{order?.shipment_id}</span>
                 </div>
+                <div className="flex justify-between text-sm text-gray-700">
+                  <span>Shiprocket Order ID:</span>
+                  <span className="font-medium">{order?.shiprocket_order_id}</span>
+                </div>
                 <p className="mt-2 text-xs text-gray-500">Courier has not been assigned yet.</p>
               </div>
             </div>
@@ -165,8 +169,12 @@ const OrderDetailsModal = ({ isOpen, order, onClose }) => {
                       <span className="font-medium">{order?.shipment_id || '—'}</span>
                     </div>
                     <div className="flex justify-between">
+                      <span>Shiprocket Order ID:</span>
+                      <span className="font-medium">{order?.shiprocket_order_id}</span>
+                    </div>
+                    <div className="flex justify-between">
                       <span>AWB Code:</span>
-                      <span className="font-medium">{order?.shiprocket_awb || '—'}</span>
+                      <span className="font-medium">{order?.awb_code || '—'}</span>
                     </div>
                   </div>
                 </div>

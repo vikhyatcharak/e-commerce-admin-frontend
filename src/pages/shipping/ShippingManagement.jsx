@@ -38,12 +38,10 @@ const ShippingManagement = () => {
     const fetchInitialData = async () => {
         setLoading(true)
         try {
-            await Promise.all([
-                await fetchPickupLocations(),
-                await fetchOrders(),
-                await fetchShiprocketOrders(),
-                await fetchShippingStats()
-            ])
+            await fetchPickupLocations()
+            const ordersData = await fetchOrders() // capture returned orders
+            await fetchShiprocketOrders(ordersData)
+            await fetchShippingStats(ordersData)
         } catch (error) {
             console.error('Error fetching initial data:', error)
             toast.error('Failed to load shipping data')
@@ -51,6 +49,7 @@ const ShippingManagement = () => {
             setLoading(false)
         }
     }
+
 
     const fetchPickupLocations = async () => {
         try {
@@ -69,59 +68,47 @@ const ShippingManagement = () => {
 
     const fetchOrders = async () => {
         try {
-            setLoading(true)
             const response = await ordersAPI.getAllOrders()
             if (response.data?.success) {
                 let data = response.data.data
-                if (!Array.isArray(data)) {
-                    data = data ? [data] : []
-                }
-                setOrders(data)
+                const normalizedData = Array.isArray(data) ? data : [data]
+                const cleaned = normalizedData.filter(order => !!order && typeof order === 'object')
+
+                setOrders(cleaned)
+                return (cleaned)
+            } else {
+                setOrders([])
+                return([])
             }
         } catch (error) {
             console.error('Error fetching orders:', error)
             setOrders([])
-        } finally {
-            setLoading(false)
+            return([])
         }
     }
 
-    const fetchShiprocketOrders = async () => {
+    const fetchShiprocketOrders = async (ordersList) => {
         try {
-            setLoading(true)
-            if (orders.length > 0) {
-                // Filter orders that have Shiprocket integration
-                const ordersWithShiprocket = Array.isArray(orders)
-                    ? orders.filter(order => order.shiprocket_order_id || order.shiprocket_awb)
-                    : orders.shiprocket_order_id || orders.shiprocket_awb
-                        ? [orders]
-                        : []
-
-                setShiprocketOrders(ordersWithShiprocket)
-            }
+            const ordersWithShiprocket = ordersList.filter(order => order.shiprocket_order_id)
+            setShiprocketOrders(ordersWithShiprocket)
         } catch (error) {
             console.error('Error fetching Shiprocket orders:', error)
-        } finally {
-            setLoading(false)
         }
     }
 
-    const fetchShippingStats = async () => {
+    const fetchShippingStats = async (ordersList) => {
         try {
-            if (orders.length > 0) {
-                const stats = {
-                    totalOrders: orders.length,
-                    shippedOrders: orders.filter(o => o.awb_code).length,
-                    pendingShipments: orders.filter(o => o.delivery_status === 'pending' && !o.shiprocket_awb).length,
-                    deliveredOrders: orders.filter(o => o.delivery_status === 'delivered').length,
-                    totalRevenue: orders.reduce((sum, o) => sum + (parseFloat(o.final_total) || 0), 0),
-                    averageDeliveryTime: '3-5 days', // This would be calculated from actual delivery data
-                }
-
-                setShippingStats(stats)
+            const stats = {
+                totalOrders: ordersList.length,
+                shippedOrders: ordersList.filter(o => o.awb_code).length,
+                pendingShipments: ordersList.filter(o => o.delivery_status === 'pending' && !o.shiprocket_awb).length,
+                deliveredOrders: ordersList.filter(o => o.delivery_status === 'delivered').length,
+                totalRevenue: ordersList.reduce((sum, o) => sum + (parseFloat(o.final_total) || 0), 0),
+                averageDeliveryTime: '3-5 days',
             }
+            setShippingStats(stats)
         } catch (error) {
-            console.error('Error fetching shipping stats:', error)
+            console.error('Error calculating stats:', error)
         }
     }
 
@@ -138,7 +125,8 @@ const ShippingManagement = () => {
                 toast.success('Tracking info retrieved')
             }
         } catch (error) {
-            toast.error('Failed to track shipment')
+            console.log(error.response)
+            toast.error(error.response?.data?.message)
             setTrackingResult(null)
         }
     }
@@ -148,22 +136,22 @@ const ShippingManagement = () => {
         setShowCourierModal(true)
     }
 
-    const handleDeleteLocation = async (locationId) => {
-        if (!confirm('Are you sure you want to delete this pickup location?')) return
+    // const handleDeleteLocation = async (locationId) => {
+    //     if (!confirm('Are you sure you want to delete this pickup location?')) return
 
-        try {
-            setLoading(true)
-            const response = await ordersAPI.deletePickupLocation(locationId)
-            if (response.data.success) {
-                toast.success('Pickup location deleted')
-                fetchPickupLocations()
-            }
-        } catch (error) {
-            toast.error('Failed to delete location')
-        } finally {
-            setLoading(false)
-        }
-    }
+    //     try {
+    //         setLoading(true)
+    //         const response = await ordersAPI.deletePickupLocation(locationId)
+    //         if (response.data.success) {
+    //             toast.success('Pickup location deleted')
+    //             fetchPickupLocations()
+    //         }
+    //     } catch (error) {
+    //         toast.error('Failed to delete location')
+    //     } finally {
+    //         setLoading(false)
+    //     }
+    // }
 
     const handleSetDefaultLocation = async (locationId) => {
         if (!confirm("Make this the default pickup location?")) return
@@ -175,7 +163,8 @@ const ShippingManagement = () => {
                 fetchPickupLocations()
             }
         } catch (error) {
-            toast.error('Failed to set default location')
+            console.log(error.response)
+            toast.error(error.response?.data?.message)
         } finally {
             setLoading(false)
         }
@@ -191,7 +180,8 @@ const ShippingManagement = () => {
             window.open(url, '_blank')
             toast.success('Shipping label downloaded')
         } catch (error) {
-            toast.error('Failed to download shipping label')
+            console.log(error.response)
+            toast.error(error.response?.data?.message)
         }
     }
     const handleDownloadInvoice = async (orderId) => {
@@ -204,7 +194,8 @@ const ShippingManagement = () => {
             window.open(url, '_blank')
             toast.success('Shipping label downloaded')
         } catch (error) {
-            toast.error('Failed to download shipping label')
+            console.log(error.response)
+            toast.error(error.response?.data?.message)
         }
     }
     const handleDownloadManifest = async (shipmentId) => {
@@ -217,7 +208,8 @@ const ShippingManagement = () => {
             window.open(url, '_blank')
             toast.success('Shipping label downloaded')
         } catch (error) {
-            toast.error('Failed to download shipping label')
+            console.log(error.response)
+            toast.error(error.response?.data?.message)
         }
     }
 
@@ -448,7 +440,7 @@ const ShippingManagement = () => {
                                                     Set Default
                                                 </button>
                                             )}
-                                            <button
+                                            {/* <button
                                                 onClick={() => {
                                                     setEditLocation(location)
                                                     setShowLocationModal(true)
@@ -465,7 +457,8 @@ const ShippingManagement = () => {
                                                 disabled={location.is_default || loading}
                                             >
                                                 🗑️
-                                            </button>
+                                            </button> */}
+                                            {/*cannot edit or delete location in shiprocket */}
                                         </div>
                                     </div>
                                 ))}
@@ -531,12 +524,13 @@ const ShippingManagement = () => {
                                                             <button
                                                                 onClick={async () => {
                                                                     try {
-                                                                        const response = await ordersAPI.trackShipment(order.shiprocket_awb)
+                                                                        const response = await ordersAPI.trackShipment(order.shiprocket_order_id)
                                                                         if (response.data.success) {
                                                                             toast.success(`Status: ${response.data.data.current_status}`)
                                                                         }
                                                                     } catch (error) {
-                                                                        toast.error('Failed to track shipment')
+                                                                        console.log(error.response)
+                                                                        toast.error(error.response?.data?.message)
                                                                     }
                                                                 }}
                                                                 className="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700"
@@ -688,7 +682,7 @@ const ShippingManagement = () => {
                     setEditLocation(null)
                 }}
                 onEditLocation={(location) => {
-                    setEditLocation(location) // ✅ this sets the prop for edit mode
+                    setEditLocation(location)
                 }}
             />
 

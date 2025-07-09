@@ -24,21 +24,21 @@ const ShippingLocationModal = ({ isOpen, onClose, onLocationCreated, onEditLocat
     useEffect(() => {
         if (isOpen) {
             fetchLocations()
-            if (editLocation) {
-                setFormData({
-                    location_name: editLocation.location_name || '',
-                    address: editLocation.address || '',
-                    city: editLocation.city || '',
-                    state: editLocation.state || '',
-                    pincode: editLocation.pincode || '',
-                    country: editLocation.country || 'India',
-                    contact_person: editLocation.contact_person || '',
-                    phone: editLocation.phone || '',
-                    email: editLocation.email || '',
-                    is_default: editLocation.is_default || false
-                })
-                setActiveTab('create')
-            }
+            // if (editLocation) {
+            //     setFormData({
+            //         location_name: editLocation.location_name || '',
+            //         address: editLocation.address || '',
+            //         city: editLocation.city || '',
+            //         state: editLocation.state || '',
+            //         pincode: editLocation.pincode || '',
+            //         country: editLocation.country || 'India',
+            //         contact_person: editLocation.contact_person || '',
+            //         phone: editLocation.phone || '',
+            //         email: editLocation.email || '',
+            //         is_default: editLocation.is_default || false
+            //     })
+            //     setActiveTab('create')
+            // }//cannot edit or delete location in shiprocket
         }
     }, [isOpen, editLocation])
 
@@ -57,7 +57,13 @@ const ShippingLocationModal = ({ isOpen, onClose, onLocationCreated, onEditLocat
         const errors = []
 
         if (!formData.location_name.trim()) errors.push('Location name is required')
-        if (!formData.address.trim()) errors.push('Address is required')
+        if (!formData.address?.trim()) {
+            throw new ApiError(400, "Address is required")
+        } else if (formData.address.length < 10) {
+            errors.push('Address must be at least 10 characters long')
+        } else if (!/(house|flat|road|street|block|no\.?|#)/i.test(formData.address)) {
+            errors.push('Address line 1 should have House no / Flat no / Road no.')
+        }
         if (!formData.city.trim()) errors.push('City is required')
         if (!formData.state.trim()) errors.push('State is required')
         if (!formData.pincode.trim()) errors.push('Pincode is required')
@@ -132,10 +138,10 @@ const ShippingLocationModal = ({ isOpen, onClose, onLocationCreated, onEditLocat
             const response = await ordersAPI.setDefaultPickupLocation(locationId)
             if (response.data.success) {
                 toast.success('Default pickup location updated!')
-                fetchLocations()
+                await fetchLocations()
             }
         } catch (error) {
-            toast.error('Failed to set default location')
+            toast.error(error.response?.data?.message)
         }
     }
 
@@ -149,7 +155,7 @@ const ShippingLocationModal = ({ isOpen, onClose, onLocationCreated, onEditLocat
                 fetchLocations()
             }
         } catch (error) {
-            toast.error('Failed to delete location')
+            toast.error(error.response?.data?.message)
         }
     }
 
@@ -227,7 +233,7 @@ const ShippingLocationModal = ({ isOpen, onClose, onLocationCreated, onEditLocat
                                     <input
                                         type="text"
                                         required
-                                        disabled={originalLocationName!==''}
+                                        disabled={originalLocationName !== ''}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                         placeholder="e.g., Main Warehouse, Delhi Hub"
                                         value={formData.location_name}
@@ -453,7 +459,7 @@ const ShippingLocationModal = ({ isOpen, onClose, onLocationCreated, onEditLocat
                                                             Set Default
                                                         </button>
                                                     )}
-                                                    <button
+                                                    {/* <button
                                                         onClick={() => {
                                                             onEditLocation(location)
                                                             setFormData({
@@ -483,7 +489,8 @@ const ShippingLocationModal = ({ isOpen, onClose, onLocationCreated, onEditLocat
                                                         disabled={location.is_default}
                                                     >
                                                         🗑️
-                                                    </button>
+                                                    </button> */}
+                                                    {/* cannot edit or delete location in shiprocket */}
                                                 </div>
                                             </div>
                                         </div>
