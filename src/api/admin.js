@@ -5,7 +5,7 @@ export const adminAPI = {
   login: (credentials) => AdminApi.post('/login', credentials),
   logout: () => AdminApi.post('/logout'),
   refreshToken: () => AdminApi.post('/refresh-token'),
-  getCurrentAdmin: () => AdminApi.get('/current'),
+  getCurrentAdmin: () => AdminApi.get('/current-admin'),
   updateAdmin: (data) => AdminApi.patch('/update-account', data),
   changePassword: (data) => AdminApi.post('/change-password', data)
 }

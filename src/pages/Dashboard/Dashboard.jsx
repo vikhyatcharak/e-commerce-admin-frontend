@@ -5,7 +5,7 @@ import DashboardCard from './DashboardCard.jsx'
 
 const Dashboard = () => {
   const navigate = useNavigate()
-  const { admin, initialized } = UseAdmin()
+  const { admin, isAuthenticated } = UseAdmin()
   
   const dashboardCards = [
     {
@@ -71,7 +71,7 @@ const Dashboard = () => {
     navigate(route)
   }
 
-  if (!initialized) {
+  if (!isAuthenticated) {
     return (
       <div className="flex justify-center items-center h-64">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>

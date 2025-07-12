@@ -3,9 +3,9 @@ import { Navigate } from 'react-router-dom'
 import { UseAdmin } from '../../context/AdminContext.jsx'
 
 const ProtectedRoute = ({ children }) => {
-  const { admin, loading, initialized } = UseAdmin()
+  const { admin, loading, isAuthenticated } = UseAdmin()
 
-  if (!initialized || loading) {
+  if (loading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
@@ -13,7 +13,7 @@ const ProtectedRoute = ({ children }) => {
       </div>
     )
   }
-
+ if(!isAuthenticated) return <Navigate to="/admin/login" replace />
   return admin ? children : <Navigate to="/admin/login" replace />
 }
 

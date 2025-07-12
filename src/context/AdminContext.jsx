@@ -6,55 +6,31 @@ const AdminContext = createContext()
 export const AdminProvider = ({ children }) => {
     const [admin, setAdmin] = useState(null)
     const [loading, setLoading] = useState(true)
-    const [initialized, setInitialized] = useState(false)
+    const [isAuthenticated, setIsAuthenticated] = useState(false)
 
-    // Initialize authentication state
+
     useEffect(() => {
-        initializeAdmin()
-    }, [])
-
-    const initializeAdmin = async () => {
-        try {
-            // Try to get current admin (this will use existing cookies)
-            const response = await adminAPI.getCurrentAdmin()
-            if (response.data.success) {
-                const adminData = response.data.data
-                setAdmin(adminData)
-                localStorage.setItem('adminData', JSON.stringify(adminData))
-            }
-        } catch (error) {
-            // If getCurrentAdmin fails, try to refresh token
-            if (error.response?.status === 401) {
+        const checkAuth = async () => {
+            const token = localStorage.getItem('adminToken')
+            if (token) {
                 try {
-                    await adminAPI.refreshToken()
-                    // Retry getting current admin after refresh
-                    const retryResponse = await adminAPI.getCurrentAdmin()
-                    if (retryResponse.data.success) {
-                        const adminData = retryResponse.data.data
-                        setAdmin(adminData)
-                        localStorage.setItem('adminData', JSON.stringify(adminData))
-                    }
-                } catch (refreshError) {
-                    // Both failed, clear any stored data
-                    localStorage.removeItem('adminData')
-                    setAdmin(null)
-                }
-            } else {
-                // Other errors, check localStorage for cached data
-                const storedAdmin = localStorage.getItem('adminData')
-                if (storedAdmin) {
-                    setAdmin(JSON.parse(storedAdmin))
+                    const response = await adminAPI.getCurrentAdmin()
+                    setAdmin(response.data.data)
+                    setIsAuthenticated(true)
+                } catch (error) {
+                    console.error("Auth check failed", error)
+                    localStorage.removeItem('adminToken')
+                    setIsAuthenticated(false)
                 }
             }
-        } finally {
             setLoading(false)
-            setInitialized(true)
         }
-    }
+        checkAuth()
+    }, [admin])
 
-    // Auto token refresh every 10 minutes
+    // Auto token refresh every 5 hours
     useEffect(() => {
-        if (!admin || !initialized) return
+        if (!admin || !isAuthenticated) return
 
         const checkTokenExpiry = async () => {
             try {
@@ -68,22 +44,22 @@ export const AdminProvider = ({ children }) => {
                 }
             }
         }
-        const interval = setInterval(checkTokenExpiry, 10 * 60 * 1000) // 10 minutes
+        const interval = setInterval(checkTokenExpiry, 5 * 60 * 60 * 1000) // 5 hours
         return () => clearInterval(interval)
-    }, [admin, initialized])
+    }, [admin, isAuthenticated])
 
     const login = async (credentials) => {
         try {
             const response = await adminAPI.login(credentials)
             if (response.data?.success) {
-                const adminData = response.data.data?.admin
-                setAdmin(adminData)
-                localStorage.setItem('adminData', JSON.stringify(adminData))
-                return { success: true }
+                localStorage.setItem('adminToken', response.data.data.accessToken)
             }
+            setIsAuthenticated(true)
+            setAdmin(response.data.data)
+            return { success: true }
         } catch (error) {
             console.log(error)
-            const errorMessage = error.message || error.response?.data?.message || 'Login failed'
+            const errorMessage = error.response?.data?.message || 'Login failed'
             throw new Error(errorMessage)
         }
     }
@@ -95,7 +71,8 @@ export const AdminProvider = ({ children }) => {
             console.error('Logout error:', error)
         } finally {
             setAdmin(null)
-            localStorage.removeItem('adminData')
+            localStorage.removeItem('adminToken')
+            setIsAuthenticated(false)
         }
     }
 
@@ -106,16 +83,16 @@ export const AdminProvider = ({ children }) => {
                 // Get updated admin data after refresh
                 const adminResponse = await adminAPI.getCurrentAdmin()
                 if (adminResponse.data?.success) {
-                    const adminData = adminResponse.data?.data
-                    setAdmin(adminData)
-                    localStorage.setItem('adminData', JSON.stringify(adminData))
+                    localStorage.setItem('adminToken', response.data.data.accessToken)
                 }
+                const adminData = await adminAPI.getCurrentAdmin()
+                setAdmin(adminData)
                 return true
             }
         } catch (error) {
             // Refresh failed, logout user
             setAdmin(null)
-            localStorage.removeItem('adminData')
+            localStorage.removeItem('adminToken')
             return false
         }
     }
@@ -126,7 +103,6 @@ export const AdminProvider = ({ children }) => {
             if (response.data?.success) {
                 const updatedAdmin = response.data.data
                 setAdmin(updatedAdmin)
-                localStorage.setItem('adminData', JSON.stringify(updatedAdmin))
                 return { success: true }
             }
         } catch (error) {
@@ -153,7 +129,7 @@ export const AdminProvider = ({ children }) => {
     const value = {
         admin,
         loading,
-        initialized,
+        isAuthenticated,
         login,
         logout,
         refreshToken,
