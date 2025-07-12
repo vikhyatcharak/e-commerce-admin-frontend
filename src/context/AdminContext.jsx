@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react'
 import { adminAPI } from '../api/admin.js'
+import { toast } from 'react-toastify'
 
 const AdminContext = createContext()
 
@@ -20,6 +21,7 @@ export const AdminProvider = ({ children }) => {
                 } catch (error) {
                     console.error("Auth check failed", error)
                     localStorage.removeItem('adminToken')
+                    setAdmin(null)
                     setIsAuthenticated(false)
                 }
             }
@@ -28,7 +30,7 @@ export const AdminProvider = ({ children }) => {
         checkAuth()
     }, [admin])
 
-    // Auto token refresh every 5 hours
+    // Auto token refresh every 10 hours
     useEffect(() => {
         if (!admin || !isAuthenticated) return
 
@@ -44,7 +46,7 @@ export const AdminProvider = ({ children }) => {
                 }
             }
         }
-        const interval = setInterval(checkTokenExpiry, 5 * 60 * 60 * 1000) // 5 hours
+        const interval = setInterval(checkTokenExpiry, 10 * 60 * 60 * 1000) // 5 hours
         return () => clearInterval(interval)
     }, [admin, isAuthenticated])
 
@@ -53,23 +55,26 @@ export const AdminProvider = ({ children }) => {
             const response = await adminAPI.login(credentials)
             if (response.data?.success) {
                 localStorage.setItem('adminToken', response.data.data.accessToken)
+                setIsAuthenticated(true)
+                setAdmin(response.data.data)
+                toast.success('Login successful!')
             }
-            setIsAuthenticated(true)
-            setAdmin(response.data.data)
-            return { success: true }
+            return { success: true, data: response.data.data }
         } catch (error) {
             console.log(error)
-            const errorMessage = error.response?.data?.message || 'Login failed'
-            throw new Error(errorMessage)
+            toast.error(error.response?.data?.message || 'Login failed')
+            return { success: false, error: error.response?.data?.message }
         }
     }
 
     const logout = async () => {
         try {
             await adminAPI.logout()
+            toast.success('Logged out successfully!')
         } catch (error) {
             console.error('Logout error:', error)
         } finally {
+            // Even if API call fails, clear local state
             setAdmin(null)
             localStorage.removeItem('adminToken')
             setIsAuthenticated(false)
@@ -103,41 +108,43 @@ export const AdminProvider = ({ children }) => {
             if (response.data?.success) {
                 const updatedAdmin = response.data.data
                 setAdmin(updatedAdmin)
+                toast.success('Profile updated successfully!')
                 return { success: true }
             }
         } catch (error) {
-            const errorMessage = error.message || error.response?.data?.message || 'Login failed'
-            throw new Error(errorMessage)
+            const errorMessage = error.response?.data?.message || 'Profile update failed'
+            toast.error(errorMessage)
+            return { success: false, error: errorMessage }
         }
-    }
 
-    const changePassword = async (passwordData) => {
-        try {
-            const response = await adminAPI.changePassword(passwordData)
-            if (response.data?.success) {
-                // Password change forces logout for security
-                await logout()
-                return { success: true }
+        const changePassword = async (passwordData) => {
+            try {
+                const response = await adminAPI.changePassword(passwordData)
+                if (response.data?.success) {
+                    // Password change forces logout for security
+                    await logout()
+                    return { success: true }
+                }
+            } catch (error) {
+                console.log(error)
+                const errorMessage = error.message || error.response?.data?.message || 'Login failed'
+                throw new Error(errorMessage)
             }
-        } catch (error) {
-            console.log(error)
-            const errorMessage = error.message || error.response?.data?.message || 'Login failed'
-            throw new Error(errorMessage)
         }
-    }
 
-    const value = {
-        admin,
-        loading,
-        isAuthenticated,
-        login,
-        logout,
-        refreshToken,
-        updateProfile,
-        changePassword
-    }
+        const value = {
+            admin,
+            loading,
+            isAuthenticated,
+            login,
+            logout,
+            refreshToken,
+            updateProfile,
+            changePassword
+        }
 
-    return <AdminContext.Provider value={value}>{children}</AdminContext.Provider>
+        return <AdminContext.Provider value={value}>{children}</AdminContext.Provider>
+    }
 }
 
 export const UseAdmin = () => {
