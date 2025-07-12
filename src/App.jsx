@@ -57,7 +57,11 @@ function App() {
 }
 
 function AppRoutes() {
-  const { isAuthenticated } = UseAdmin()
+  const { isAuthenticated, loading } = UseAdmin()
+
+  if (loading) {
+    return <div className="flex justify-center items-center min-h-screen">Loading...</div>
+  }
 
   return (
     <Routes>
