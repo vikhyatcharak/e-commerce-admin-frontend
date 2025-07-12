@@ -116,35 +116,35 @@ export const AdminProvider = ({ children }) => {
             toast.error(errorMessage)
             return { success: false, error: errorMessage }
         }
-
-        const changePassword = async (passwordData) => {
-            try {
-                const response = await adminAPI.changePassword(passwordData)
-                if (response.data?.success) {
-                    // Password change forces logout for security
-                    await logout()
-                    return { success: true }
-                }
-            } catch (error) {
-                console.log(error)
-                const errorMessage = error.message || error.response?.data?.message || 'Login failed'
-                throw new Error(errorMessage)
-            }
-        }
-
-        const value = {
-            admin,
-            loading,
-            isAuthenticated,
-            login,
-            logout,
-            refreshToken,
-            updateProfile,
-            changePassword
-        }
-
-        return <AdminContext.Provider value={value}>{children}</AdminContext.Provider>
     }
+    const changePassword = async (passwordData) => {
+        try {
+            const response = await adminAPI.changePassword(passwordData)
+            if (response.data?.success) {
+                // Password change forces logout for security
+                await logout()
+                return { success: true }
+            }
+        } catch (error) {
+            console.log(error)
+            const errorMessage = error.message || error.response?.data?.message || 'Login failed'
+            toast.error(errorMessage)
+            return { success: false, error: errorMessage }
+        }
+    }
+
+    const value = {
+        admin,
+        loading,
+        isAuthenticated,
+        login,
+        logout,
+        refreshToken,
+        updateProfile,
+        changePassword
+    }
+
+    return <AdminContext.Provider value={value}>{children}</AdminContext.Provider>
 }
 
 export const UseAdmin = () => {

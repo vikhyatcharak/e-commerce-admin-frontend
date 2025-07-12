@@ -1,6 +1,6 @@
 import React from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
-import { AdminProvider } from './context/AdminContext.jsx'
+import { AdminProvider, UseAdmin } from './context/AdminContext.jsx'
 import ProtectedRoute from './components/common/ProtectedRoute.jsx'
 import Layout from './components/layout/Layout.jsx'
 import LoginAdmin from './pages/admin/LogIn.jsx'
@@ -35,7 +35,7 @@ const adminRoutes = [
   { path: "/admin/subcategories/:subcategoryId/products", element: <Products /> },
   { path: "/admin/products/:productId/variants", element: <ProductVariants /> },
   { path: "/admin/emailTemplates", element: <EmailTemplates /> },
-  { path: "/admin/shipping", element: <ShippingManagement/> }
+  { path: "/admin/shipping", element: <ShippingManagement /> }
 ]
 
 function App() {
@@ -43,25 +43,7 @@ function App() {
     <>
       <Router>
         <AdminProvider>
-          <Routes>
-            {/* Public Routes */}
-            <Route path="/" element={<Navigate to="/admin/dashboard" replace />} />
-            <Route path="/admin/login" element={<LoginAdmin />} />
-            <Route path="/admin/register" element={<RegisterAdmin />} />
-
-            {/* Protected Routes */}
-            {adminRoutes.map(({ path, element }) => (
-              <Route
-                key={path}
-                path={path}
-                element={
-                  <ProtectedRoute>
-                    <Layout>{element}</Layout>
-                  </ProtectedRoute>
-                }
-              />
-            ))}
-          </Routes>
+          <AppRoutes />
         </AdminProvider>
       </Router>
 
@@ -73,5 +55,36 @@ function App() {
     </>
   )
 }
+
+function AppRoutes() {
+  const { isAuthenticated } = UseAdmin()
+
+  return (
+    <Routes>
+      {/* Public Routes */}
+      {isAuthenticated
+        ? <Route path="/" element={<Navigate to="/admin/dashboard" replace />} />
+        : <Route path="/" element={<Navigate to="/admin/login" replace />} />
+      }
+
+      <Route path="/admin/login" element={<LoginAdmin />} />
+      <Route path="/admin/register" element={<RegisterAdmin />} />
+
+      {/* Protected Routes */}
+      {adminRoutes.map(({ path, element }) => (
+        <Route
+          key={path}
+          path={path}
+          element={
+            <ProtectedRoute>
+              <Layout>{element}</Layout>
+            </ProtectedRoute>
+          }
+        />
+      ))}
+    </Routes>
+  )
+}
+
 
 export default App
